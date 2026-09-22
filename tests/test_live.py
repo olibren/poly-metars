@@ -79,6 +79,48 @@ EGLC 221320Z 00000KT CAVOK 25/15 Q1029=
             self.assertEqual(len(archive.read('reports')), 1)
             self.assertTrue(archive.verify()['verified'])
 
+    def test_eccc_missing_directory_is_recorded_without_mirror_retry(self):
+        from unittest.mock import MagicMock
+        with TemporaryDirectory() as temp:
+            archive = Archive(temp)
+            client = MagicMock()
+            client.archive = archive
+            def missing(source, url):
+                archive.response(source, url, b'Not found', 404)
+                raise HTTPError(url, 404, 'Not found', {}, None)
+            client.links.side_effect = missing
+            airport = {**AIRPORT, 'timezone':'UTC', 'eccc_bulletins':['SAUK32_EGGY']}
+            result = collect_eccc(client, [airport], [NOW.date().isoformat()], recent_hours=0)
+            self.assertEqual(result['status'], 'ok')
+            self.assertEqual(result['reports'], 0)
+            self.assertEqual(client.links.call_count, 1)
+            self.assertEqual(archive.read('receipts')[0]['status'], 404)
+            self.assertTrue(archive.verify()['verified'])
+
+    def test_eccc_server_outage_uses_alternate_https_hostname(self):
+        from unittest.mock import MagicMock
+        with TemporaryDirectory() as temp:
+            archive = Archive(temp)
+            client = MagicMock()
+            client.archive = archive
+            stamp = NOW.strftime('%d%H%M')
+            name = f'SAUK32_EGGY_{stamp}___1'
+            body = f'SAUK32 EGGY {stamp}\nMETAR EGLC {stamp}Z 00000KT CAVOK 24/15 Q1029='.encode()
+            def listing(source, url):
+                if 'dd.weather.gc.ca' in url:
+                    raise HTTPError(url, 503, 'Unavailable', {}, None)
+                self.assertTrue(url.startswith('https://dd.meteo.gc.ca/'))
+                return [name]
+            client.links.side_effect = listing
+            client.fetch.side_effect = lambda source, url: (body, archive.response(source, url, body, 200))
+            airport = {**AIRPORT, 'timezone':'UTC', 'eccc_bulletins':['SAUK32_EGGY']}
+            result = collect_eccc(client, [airport], [NOW.date().isoformat()], recent_hours=0)
+            self.assertEqual(result['status'], 'ok')
+            self.assertEqual(result['reports'], 1)
+            self.assertEqual(client.links.call_count, 2)
+            self.assertTrue(archive.read('reports')[0]['url'].startswith('https://dd.meteo.gc.ca/'))
+            self.assertTrue(archive.verify()['verified'])
+
 
 class LiveTests(unittest.TestCase):
     def setUp(self):

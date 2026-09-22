@@ -20,7 +20,7 @@ ALLOWED_HOSTS = {
     "aviationweather.gov",
     "tgftp.nws.noaa.gov",
     "dd.weather.gc.ca",
-    "hpfx.collab.science.gc.ca",
+    "dd.meteo.gc.ca",
     "gamma-api.polymarket.com",
 }
 
@@ -260,8 +260,7 @@ def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
         day = hour.strftime("%Y%m%d")
         path = f"/{day}/WXO-DD/bulletins/alphanumeric/{day}/SA/{center}/{hour:%H}/"
         failures = []
-        missing_directories = 0
-        for host in ("dd.weather.gc.ca", "hpfx.collab.science.gc.ca"):
+        for host in ("dd.weather.gc.ca", "dd.meteo.gc.ca"):
             directory = "https://" + host + path
             try:
                 links = client.links(source, directory)
@@ -299,13 +298,15 @@ def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
                 return added
             except HTTPError as error:
                 if error.code == 404 and error.url == directory:
-                    missing_directories += 1
-                    continue  # Check the other ECCC distribution host too.
+                    # Directories exist only when products have been issued.
+                    # Keep the 404 receipt and revisit next sweep; this says
+                    # nothing about observation completeness.
+                    if failures:
+                        raise RuntimeError("; ".join(failures)) from error
+                    return 0
                 failures.append(str(error))
             except (URLError, TimeoutError, OSError, ValueError) as error:
                 failures.append(str(error))
-        if missing_directories == 2:
-            return 0  # Neither directory exists; this is not proof of completeness.
         raise RuntimeError("; ".join(failures))
 
     for result, error in parallel(jobs, fetch, workers):

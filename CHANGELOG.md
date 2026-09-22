@@ -18,4 +18,6 @@
   disk-capacity warning, parsing-failure downloads and source-failure banners.
 - Prioritized recent ECCC reception hours and ingest reports as each file arrives,
   so a large collective cannot hold back other reports in its hour.
+- Treat absent ECCC reception directories as recorded no-data responses, and use
+  the documented alternate HTTPS hostname for actual request failures.
 - Preserved the original routine-METAR policy and source order.

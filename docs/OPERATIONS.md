@@ -30,6 +30,12 @@ ECCC live collection prioritizes the two newest bulletin times for each configur
 route, retaining every file/correction at those times. Its separate five-minute
 recovery worker scans all files, including intermediate observations. Initial
 recovery can take longer than one interval; live checks continue throughout.
+An absent reception-hour directory (HTTP 404) is recorded and revisited, without
+turning it into an outage or a claim of complete coverage. Transport and server
+failures fall back from `dd.weather.gc.ca` to ECCC's documented HTTPS hostname
+`dd.meteo.gc.ca`. These names are not independent collection infrastructure.
+The [ECCC access guide](https://eccc-msc.github.io/open-data/msc-datamart/readme_en/)
+documents the endpoints; the HTTP-only HPFX alternative is not used.
 
 TGFTP recovery reads timestamped `DS.metar/sn.NNNN.txt` collectives, which rotate.
 Names are not timestamps. Each WMO bulletin retains its own SA/SP classification
