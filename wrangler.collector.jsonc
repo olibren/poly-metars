@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "poly-metars-collector",
+  "main": "cloudflare/src/entry.py",
+  "compatibility_date": "2026-09-22",
+  "compatibility_flags": ["python_workers"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "limits": { "cpu_ms": 30000 },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  },
+  "triggers": { "crons": ["* * * * *"] },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "poly-metars",
+    "database_id": "93e2831c-9a74-49fe-9051-17323507fdca",
+    "migrations_dir": "cloudflare/migrations"
+  }],
+  "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "poly-metars" }],
+  "queues": {
+    "producers": [
+      { "binding": "LIVE", "queue": "poly-metars-live" },
+      { "binding": "RECOVERY", "queue": "poly-metars-recovery" }
+    ],
+    "consumers": [
+      { "queue": "poly-metars-live", "max_batch_size": 1, "max_batch_timeout": 1,
+        "max_concurrency": 16, "max_retries": 5, "retry_delay": 30 },
+      { "queue": "poly-metars-recovery", "max_batch_size": 1, "max_batch_timeout": 1,
+        "max_concurrency": 2, "max_retries": 5, "retry_delay": 60 }
+    ]
+  }
+}

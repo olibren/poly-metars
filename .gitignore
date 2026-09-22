@@ -46,3 +46,8 @@ __pycache__/
 # Continuously collected government evidence lives outside the source repository.
 /public/data/
 /.venv/
+/.venv-workers/
+/python_modules/
+/cloudflare/src/ledger/
+/cloudflare/src/settings.py
+/.dev.vars*

@@ -7,6 +7,7 @@ import zipfile
 root = Path(__file__).resolve().parents[1]
 for name in ("README.md", "POLICY.md", "LICENSE"):
     shutil.copyfile(root / name, root / "public" / name)
+shutil.copyfile(root / "docs/AUDIT.md", root / "public/AUDIT.md")
 
 # An allowlist keeps archives, local credentials and dependency trees out.
 files = [
@@ -33,6 +34,12 @@ files = [
         "vercel.json",
         ".vercelignore",
         "AGENTS.md",
+        "pyproject.toml",
+        "uv.lock",
+        "pylock.toml",
+        "wrangler.collector.jsonc",
+        "wrangler.site.jsonc",
+        "cloudflare/tsconfig.json",
     )
 ]
 for directory, pattern in (
@@ -48,6 +55,9 @@ for directory, pattern in (
     ("deploy", "*"),
 ):
     files.extend((root / directory).rglob(pattern))
+files.extend((root / "cloudflare/src").glob("*.py"))
+files.extend((root / "cloudflare").glob("*.ts"))
+files.extend((root / "cloudflare/migrations").glob("*.sql"))
 with zipfile.ZipFile(root / "public/source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(set(files)):
         archive.write(path, "poly-metars/" + path.relative_to(root).as_posix())

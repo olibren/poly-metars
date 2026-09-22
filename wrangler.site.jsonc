@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "poly-metars",
+  "main": "cloudflare/site.ts",
+  "compatibility_date": "2026-09-22",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist/client",
+    "run_worker_first": ["/data/*"],
+    "not_found_handling": "404-page"
+  },
+  "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "poly-metars" }],
+  "limits": { "cpu_ms": 50 },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 0.01 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.001 }
+  }
+}

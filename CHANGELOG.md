@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-22 — Cloudflare migration
+
+- Added a Cloudflare-only runtime: scheduled Python Worker, independent live/recovery queues, D1 working index and R2 evidence archive.
+- Reused the existing METAR parser, source decoders and selection policy in the cloud runtime and offline verifier.
+- Added durable task leases, redispatch, recovery priorities and interrupted archive/publication recovery.
+- Added a read-only static site Worker with bounded edge caching; public traffic cannot trigger collection or query D1.
+- Published immutable audit manifests with shared evidence downloads, operating instructions and an ownership handover guide.
+- Added crash, duplicate-delivery, queue-loss, publication-race and recovery-priority tests.
+
 ## 2026-09-22 — Poly METARs live service
 
 - Created a standalone public source repository and Vercel viewer.

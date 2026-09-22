@@ -3,30 +3,9 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "dist/client",
-  "headers": [
-    {
-      "source": "/data/index.json",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/data/:path*",
-      "destination": "https://d3a48kjzmkfx7.cloudfront.net/data/:path*"
-    }
-  ]
+  "redirects": [{
+    "source": "/:path*",
+    "destination": "https://poly-metars.olibren.workers.dev/:path*",
+    "permanent": false
+  }]
 }

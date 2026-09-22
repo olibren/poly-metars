@@ -29,6 +29,8 @@
     "build/**",
     "dist/**",
     "coverage/**",
+    "cloudflare/site-env.d.ts",
+    "work/**",
     "next-env.d.ts"
   ],
   "rules": {

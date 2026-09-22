@@ -1,0 +1,14 @@
+{
+  "site": "https://poly-metars.olibren.workers.dev",
+  "collector": "poly-metars-collector",
+  "site_worker": "poly-metars",
+  "database_name": "poly-metars",
+  "database_id": "93e2831c-9a74-49fe-9051-17323507fdca",
+  "bucket": "poly-metars",
+  "queues": [
+    "poly-metars-live",
+    "poly-metars-recovery"
+  ],
+  "github_repository": "olibren/poly-metars",
+  "legacy_state": "running during verified cutover"
+}

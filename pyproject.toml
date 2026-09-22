@@ -1,0 +1,9 @@
+[project]
+name = "poly-metars"
+version = "0.2.0"
+description = "Auditable government METAR ledger"
+requires-python = ">=3.12"
+dependencies = ["tzdata"]
+
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]

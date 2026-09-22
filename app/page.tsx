@@ -76,6 +76,7 @@ type Day = {
 };
 type Index = {
   mode?: string;
+  audit_download?: string;
   revisions?: Record<string, string>;
   stale_after_seconds?: number;
   disk_used_fraction?: number;
@@ -96,6 +97,7 @@ type Index = {
     errors: string[];
     finished_at: string;
     last_success_at?: string;
+    scope?: string;
     airports: string[];
     dates: string[];
   }[];
@@ -677,12 +679,12 @@ export default function Home() {
           <div className="collection-grid">
             {index?.collection.map((s, i) => (
               <div key={`${s.source}-${i}`}>
-                <b>{s.source}</b>
+                <b>{sources.find((source) => source.id === s.source)?.label || s.source}</b>
                 <span>
-                  {s.status} · {s.reports} new reports in latest sweep
+                  {s.status} · {s.scope ? 'Source retrieval checks' : `${s.reports} new reports in latest sweep`}
                 </span>
                 <small>
-                  {s.airports?.length || '—'} airports · {s.dates?.join(', ')}
+                  {s.scope || `${s.airports?.length || '—'} airports · ${s.dates?.join(', ') || ''}`}
                   <br />
                   Last attempt {s.finished_at || '—'}
                   <br />
@@ -730,14 +732,18 @@ export default function Home() {
               Audit manifest
             </a>
             <a
-              download
+              download={index?.audit_download !== 'manifest-and-evidence'}
               href={
-                index?.mode === 'live'
+                index?.audit_download === 'manifest-and-evidence'
+                  ? '/AUDIT.md'
+                  : index?.mode === 'live'
                   ? `${revisionRoot}/bundle.zip`
                   : `${dataRoot}/bundle.zip`
               }
             >
-              Download audit bundle
+              {index?.audit_download === 'manifest-and-evidence'
+                ? 'Download and verify evidence'
+                : 'Download audit bundle'}
             </a>
             <a href="/source.zip" download>
               Download source

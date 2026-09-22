@@ -1,92 +1,100 @@
 # Poly METARs
 
 A public, auditable ledger of government METAR reports for airport-based temperature
-markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC**. Each row shows every
-captured source and the selected reading. This is an independent proposal; it is not
-an adopted Polymarket resolution source.
+markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC**. Each row shows the
+captured sources and the selected reading. This is an independent proposal, not
+an adopted Polymarket resolution source. Results remain provisional.
 
-## Live operation
+Site: https://poly-metars.olibren.workers.dev  
+Source: https://github.com/olibren/poly-metars
 
-The Vercel website refreshes data every **15 seconds**. A separate collector checks
-each source on a **60-second target cadence**. Jobs never overlap with themselves;
-a slow upstream response can extend a cycle. The page prominently warns when the
-publisher or a source has not succeeded for three minutes. Missing/future slots are
-calculated against the current clock, even if collection stops.
+## One Cloudflare account, one repository
 
-Historical recovery is independent of live checks:
+```text
+Every-minute schedule → live queue ────→ government sources
+                      → recovery queue → government archives
+                                   ↓
+                     original bytes + receipts → R2
+                     normalized working index → D1
+                                   ↓
+                     immutable airport-day revisions → R2
+                                   ↓
+                     cached files + static website → readers
+```
+
+The collector and the website are separate Workers. Website requests cannot trigger
+collection, query D1, or submit observations. There are no servers to maintain,
+no AWS dependency in the Cloudflare runtime, and no observation commits or rebuilds.
+The collector uses the same Python parser and selection code as the offline verifier.
+
+The schedule targets **60-second source checks** and publication. The browser checks
+for updates every **15 seconds**. Upstream delays, queue backlog or failed checks can
+extend these intervals; the page warns when publication or source checks become stale.
+Future and missing slots use the reader's current clock, even if collection stops.
 
 | Path | Target interval | Recovery |
 |---|---:|---|
-| AWC live | 60 seconds | Previous 3 hours, small batches |
-| TGFTP live | 60 seconds | Latest configured SA bulletins |
-| ECCC live | 60 seconds | Two newest bulletin times per route in recent reception hours; all versions |
-| AWC recovery | 15 minutes | Previous 3 local dates, extended after downtime |
-| TGFTP recovery | 5 minutes | All still-retained WMO collective files covering the requested dates |
-| ECCC recovery | 5 minutes | Previous 3 local dates, extended after downtime |
+| AWC live | 60 seconds | Previous 3 hours, batches of 8 airports |
+| TGFTP live | 60 seconds | Latest configured SA bulletin files |
+| ECCC live | 60 seconds | Recent reception directories; latest two bulletin times per route |
+| AWC recovery | 15 minutes | Previous 3 local dates, within upstream retention |
+| TGFTP recovery | 5 minutes | Timestamped rotating global collectives |
+| ECCC recovery | 30 minutes recent / 6 hours older | Hourly directories; 3-day overlap, extended after downtime |
 
-Intervals run start-to-start when a sweep fits inside its interval. The next sweep
-starts after completion when it does not. Recovery expands to at most 30 days based
-on the last successful recovery; actual upstream retention still limits recovery.
-No architecture can retrieve a report that no retained source ever received.
+Live collection has its own queue and concurrency. Historical scans cannot occupy
+its consumers. Persistent tasks, expiring leases and retries recover interrupted
+work. Failed requests, raw bytes, receipt times, rejected reports and distinct
+corrections are retained. Publication changes the current index only after every
+referenced file is stored. Previous revisions remain addressable.
 
-NOAA AWC and TGFTP are two NOAA delivery paths, not two independent agencies.
-ECCC supplies a second agency's distribution path. They may share the originating
-airport and WMO transport. Only explicit routine METARs enter this policy; SPECI
-and ambiguous classifications are retained and excluded. Read [POLICY.md](POLICY.md).
+AWC and TGFTP are two NOAA delivery paths, not independent agencies. ECCC adds a
+second agency's distribution path; all can share the originating airport and WMO
+transport. Only explicitly classified routine METARs enter selection. SPECI and
+ambiguous reports are retained and excluded. Read [POLICY.md](POLICY.md).
 
-## Run locally
+## Audit a reading
 
-Requires Python 3.11+ and Node 22.13+. The collector and audit tools use only the
-Python standard library.
+Open a row to inspect the original reports. Download the day's **Audit manifest**
+and its referenced evidence with the standard-library verifier:
+
+```sh
+python3 scripts/download_audit.py 'https://SITE/data/revisions/HASH/audit.json' work/audit
+python3 -m ledger.audit work/audit
+```
+
+The second command works offline. It checks response hashes and provenance,
+reparses the reports and recomputes the selections and extrema. See
+[docs/AUDIT.md](docs/AUDIT.md). Hashes are not government signatures, independent
+timestamps, or proof that no report was omitted.
+
+## Develop and deploy
+
+Requires Node 22.13+, Python 3.12+ and uv for Cloudflare tooling. Offline verification
+also runs on Python 3.9+. Dependencies and runtime dates are pinned.
 
 ```sh
 npm ci
-python3 -m ledger.http --root work/live --port 8001
-# In another terminal; /data is proxied to the collector:
-npm run dev
-```
-
-The collector preserves exact response bytes under `archive/objects/<sha256>.txt`.
-SQLite stores receipts and every distinct normalized report. It has no report or
-receipt update/delete path. Configuration, source URLs, receipt times, explicit
-corrections and excluded reports are public. The read-only HTTP service exposes
-only published records and evidence, never the database or write controls.
-
-Each airport-day revision is immutable. A late higher-priority report can change
-the current selection; the previous published revision remains addressable.
-Download that day's audit bundle from the site, unzip it, and replay offline:
-
-```sh
-python3 -m ledger.audit /path/to/unpacked-bundle
-```
-
-The verifier checks original response hashes, receipt/report identity, classification,
-policy, station registry, and selected readings. Hashes detect changes relative to
-a manifest; they are not government signatures or independent timestamp witnesses.
-
-## Deployment and development
-
-Source: https://github.com/olibren/poly-metars
-
-The static viewer deploys to Vercel. Its `/data/*` rewrite reaches the separate
-collector through HTTPS. Observation updates do not trigger Git commits or site
-builds. The collector runs under systemd with persistent disk and hourly off-host
-backups. See [docs/OPERATIONS.md](docs/OPERATIONS.md) and `deploy/`.
-
-```sh
+uv sync --frozen
 make check build
+npm run cf:dry-run
 ```
 
-This repository contains no trading code, credentials or order execution. Runtime
-data and secrets are excluded from Git. The original batch collector/exporter
-(`python3 -m ledger`) remains available for self-contained research snapshots.
+[docs/OPERATIONS.md](docs/OPERATIONS.md) describes account setup, local execution,
+deployment, monitoring and recovery. [docs/HANDOVER.md](docs/HANDOVER.md) describes
+adoption into Polymarket-controlled accounts. The legacy standalone Python collector
+remains available for offline research and rollback; it is not required by Cloudflare.
 
-## Current limits
+## Limits and ownership
 
-One collector is not geographic failover. Source redundancy, historical recovery,
-restart recovery and off-host backups improve availability, but do not establish an
-SLA or settlement readiness. Daily results remain provisional. Station schedules
-and market mapping require review; non-airport markets are excluded. The site does
-not claim to reproduce every current market's resolution rule.
+A single Cloudflare account is an operational dependency, not decentralized consensus.
+The operator controls deployment and stored data. The application never overwrites
+published evidence, but account administrators retain that technical ability.
+Adoption requires Polymarket to own the account, repository, domain and deployment
+permissions, with the original developers' access removed.
 
-MIT licensed. Government-source documentation is linked in `config/sources.json`.
+No architecture can recover a report that all retained upstream sources missed.
+Station schedules and market mappings require review. This project does not claim
+an SLA, settlement readiness, or exact equivalence to every market's existing rules.
+
+MIT licensed. No trading code, credentials or order execution. Government-source
+documentation is linked in `config/sources.json`.
