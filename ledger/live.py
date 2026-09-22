@@ -19,6 +19,10 @@ from .policy import daily
 from .sources import Client, collect_awc, collect_awc_recent, collect_tgftp, collect_tgftp_history, collect_eccc
 
 
+# Pin the engine identity when the process loads, not while files may be redeployed.
+ENGINE_HASHES = {p.name: digest(p.read_bytes()) for p in sorted(Path(__file__).parent.glob("*.py"))}
+
+
 class Store(Archive):
     """All normalized versions and receipts are insert-only; commits are synchronous."""
 
@@ -117,7 +121,7 @@ def publish(store, config, output, now=None):
     previous = json.loads((output / 'index.json').read_text()) if (output / 'index.json').exists() else {}
     revisions = dict(previous.get('revisions', {}))
     policy_hash, registry_hash = digest(canonical(policy)), digest(canonical(airports))
-    engine_hashes = {p.name: digest(p.read_bytes()) for p in sorted(Path(__file__).parent.glob('*.py'))}
+    engine_hashes = ENGINE_HASHES
     for airport in airports:
         station = [r for r in records if r['icao'] == airport['icao']]
         for date in dates:
@@ -144,11 +148,13 @@ def publish(store, config, output, now=None):
     usage = shutil.disk_usage(store.root)
     jobs = store.read('jobs')
     live_jobs = {j['source']: j for j in jobs if j.get('mode') == 'live'}
+    rejected = store.read('rejected')
+    atomic_write(output / 'rejected.jsonl', b''.join(canonical(r) + b'\n' for r in rejected))
     index = {'mode': 'live', 'generated_at': iso(now), 'snapshot_id': digest(canonical(revisions)),
              'base_path': '/data', 'airports': airports, 'dates': sorted({k.split('/')[0] for k in revisions}, reverse=True),
              'sources': sources, 'policy': policy, 'collection': list(live_jobs.values()), 'jobs': jobs,
              'revisions': revisions, 'poll_seconds': 60, 'browser_refresh_seconds': 15,
-             'stale_after_seconds': 180, 'disk_free_bytes': usage.free, 'disk_used_fraction': (usage.total - usage.free) / usage.total, 'rejected_count': len(store.read('rejected')),
+             'stale_after_seconds': 180, 'disk_free_bytes': usage.free, 'disk_used_fraction': (usage.total - usage.free) / usage.total, 'rejected_count': len(rejected),
              'catalog_note': 'Airport coverage follows the reviewed registry. Expected slots are cadence assumptions, not proof that a report was issued.'}
     write_json(output / 'index.json', index)
     return index
@@ -184,7 +190,7 @@ def run_service(root, config='config', live_interval=60, stop=None):
             ('eccc-live', 'eccc', 'live', lambda c, a, d, workers: collect_eccc(c, a, d, workers, recent_hours=1), live_interval),
             ('awc-recovery', 'noaa_awc', 'recovery', collect_awc, 900),
             ('tgftp-recovery', 'noaa_tgftp', 'recovery', collect_tgftp_history, 300),
-            ('eccc-recovery', 'eccc', 'recovery', collect_eccc, 1800),
+            ('eccc-recovery', 'eccc', 'recovery', collect_eccc, 300),
         ]
 
         def worker(job):

@@ -31,6 +31,7 @@ files = [
         "public/favicon.svg",
         ".github/workflows/check.yml",
         "vercel.json",
+        ".vercelignore",
         "AGENTS.md",
     )
 ]

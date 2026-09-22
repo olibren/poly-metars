@@ -19,10 +19,10 @@ Historical recovery is independent of live checks:
 |---|---:|---|
 | AWC live | 60 seconds | Previous 3 hours, small batches |
 | TGFTP live | 60 seconds | Latest configured SA bulletins |
-| ECCC live | 60 seconds | Current and previous reception hour, two distribution hosts |
+| ECCC live | 60 seconds | Two newest bulletin times per route in recent reception hours; all versions |
 | AWC recovery | 15 minutes | Previous 3 local dates, extended after downtime |
 | TGFTP recovery | 5 minutes | All still-retained WMO collective files covering the requested dates |
-| ECCC recovery | 30 minutes | Previous 3 local dates, extended after downtime |
+| ECCC recovery | 5 minutes | Previous 3 local dates, extended after downtime |
 
 Intervals run start-to-start when a sweep fits inside its interval. The next sweep
 starts after completion when it does not. Recovery expands to at most 30 days based

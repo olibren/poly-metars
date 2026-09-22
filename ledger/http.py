@@ -45,12 +45,17 @@ def handler_for(root, config):
                     now = datetime.now(UTC)
                     age = (now - parse_time(index['generated_at'])).total_seconds()
                     sources = {j['source']: j for j in index['collection']}
-                    stale = [s['id'] for s in index['sources'] if not sources.get(s['id'], {}).get('last_success_at') or
+                    stale = [s['id'] for s in index['sources'] if sources.get(s['id'], {}).get('status') != 'ok' or not sources.get(s['id'], {}).get('last_success_at') or
                              (now - parse_time(sources[s['id']]['last_success_at'])).total_seconds() > index['stale_after_seconds']]
-                    self.respond(200 if age <= 180 and not stale else 503,
-                                 json.dumps({'publication_age_seconds': int(age), 'stale_sources': stale, 'generated_at': index['generated_at']}).encode())
+                    disk_warning = index.get('disk_used_fraction', 0) >= 0.8
+                    backup_file = root / 'backup-status.json'
+                    backup = json.loads(backup_file.read_text()) if backup_file.exists() else None
+                    self.respond(200 if age <= 180 and not stale and not disk_warning else 503,
+                                 json.dumps({'publication_age_seconds': int(age), 'stale_sources': stale, 'generated_at': index['generated_at'], 'disk_warning': disk_warning, 'backup': backup}).encode())
                 elif path == '/data/index.json':
                     self.respond(200, (root / 'public/index.json').read_bytes())
+                elif path == '/data/rejected.jsonl':
+                    self.respond(200, (root / 'public/rejected.jsonl').read_bytes(), 'application/x-ndjson')
                 elif path == '/data/policy.json':
                     self.respond(200, (Path(config) / 'policy.json').read_bytes())
                 elif match := re.fullmatch(r'/data/evidence/(' + HASH + r')\.txt', path):

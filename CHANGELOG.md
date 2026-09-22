@@ -14,4 +14,8 @@
 - Added dedicated systemd deployment, read-only serving and hourly off-host backups.
 - Added per-host pacing so one provider cannot hold another provider's request gate,
   and cooperative shutdown during long recovery sweeps.
+- Connected Vercel to the dedicated HTTPS data origin and added public health,
+  disk-capacity warning, parsing-failure downloads and source-failure banners.
+- Prioritized recent ECCC reception hours and ingest reports as each file arrives,
+  so a large collective cannot hold back other reports in its hour.
 - Preserved the original routine-METAR policy and source order.

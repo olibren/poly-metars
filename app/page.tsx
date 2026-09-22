@@ -78,6 +78,7 @@ type Index = {
   mode?: string;
   revisions?: Record<string, string>;
   stale_after_seconds?: number;
+  disk_used_fraction?: number;
   base_path: string;
   generated_at: string;
   airports: Airport[];
@@ -210,17 +211,20 @@ export default function Home() {
     : 0;
   const staleSources =
     index?.sources.filter((source) => {
-      const last = index.collection.find(
-        (job) => job.source === source.id,
-      )?.last_success_at;
+      const job = index.collection.find((job) => job.source === source.id);
+      const last = job?.last_success_at;
       return (
+        job?.status !== 'ok' ||
         !last ||
         now - new Date(last).getTime() >
           (index.stale_after_seconds || 180) * 1000
       );
     }) || [];
   const stale =
-    !!refreshError || publicationAge > 180 || staleSources.length > 0;
+    !!refreshError ||
+    publicationAge > 180 ||
+    (index?.disk_used_fraction || 0) >= 0.8 ||
+    staleSources.length > 0;
   const revisionRoot = revision
     ? `/data/revisions/${revision}`
     : index?.base_path || '/data';
@@ -280,6 +284,11 @@ export default function Home() {
             <span>
               Overdue or unsuccessful checks:{' '}
               {staleSources.map((s) => s.label).join(', ')}
+            </span>
+          )}
+          {(index?.disk_used_fraction || 0) >= 0.8 && (
+            <span>
+              Collector storage is above 80% capacity; maintenance is needed.
             </span>
           )}
           {(refreshError || error) && <span>{refreshError || error}</span>}
@@ -703,9 +712,7 @@ export default function Home() {
           )}
         </section>
         <footer>
-          <span>
-            Temperature Ledger · {index?.policy.version || 'policy-v1'}
-          </span>
+          <span>Poly METARs · {index?.policy.version || 'policy-v1'}</span>
           <div>
             <a download href="/POLICY.md">
               Resolution policy

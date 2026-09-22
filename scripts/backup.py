@@ -17,4 +17,4 @@ with sqlite3.connect(root / 'archive/ledger.sqlite3') as source, sqlite3.connect
 for directory, prefix in [('archive/objects', 'evidence'), ('public', 'public')]:
     subprocess.run(['aws','s3','sync',str(root / directory),f's3://{args.bucket}/{prefix}/','--only-show-errors'],check=True)
 subprocess.run(['aws','s3','cp',str(backup),f's3://{args.bucket}/database/{stamp}.sqlite3','--only-show-errors'],check=True)
-(root / 'backup-status.json').write_text('{"last_success_at":"' + stamp + '"}\n')
+(root / 'backup-status.json').write_text('{"last_success_at":"' + datetime.now(timezone.utc).isoformat().replace('+00:00','Z') + '"}\n')

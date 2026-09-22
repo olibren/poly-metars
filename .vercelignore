@@ -1,0 +1,12 @@
+.git
+node_modules
+work
+archive
+catalog-archive
+dist
+.vinext
+.next
+.env*
+**/__pycache__
+*.tsbuildinfo
+public/data

@@ -12,7 +12,7 @@ import re
 from email.utils import parsedate_to_datetime
 import threading
 import time
-from .metar import UTC, iso, parse_time, parse_report, parse_bulletin, parse_collective
+from .metar import UTC, iso, parse_time, parse_report, parse_bulletin, parse_collective, report_time
 from .policy import day_bounds
 from .evidence import bulletin_reference
 
@@ -66,7 +66,7 @@ class Client:
                 req = Request(
                     url,
                     headers={
-                        "User-Agent": "TemperatureLedger/0.1 (auditable public weather archive)",
+                        "User-Agent": "PolyMETARs/0.2 (+https://github.com/olibren/poly-metars)",
                         "Accept": "*/*",
                     },
                 )
@@ -207,6 +207,17 @@ def collect_tgftp(client, airports, dates, workers=4):
     }
 
 
+def eccc_live_links(links, prefixes, reference=None):
+    """Keep all versions of the two newest bulletin times per route; recovery scans all."""
+    reference = reference or datetime.now(UTC)
+    chosen = set()
+    for prefix in prefixes:
+        matches = [name for name in links if name.startswith(prefix) and len(name.split("_")) > 2]
+        times = sorted({name.split("_")[2] for name in matches}, key=lambda value: report_time(value, reference), reverse=True)[:2]
+        chosen.update(name for name in matches if name.split("_")[2] in times)
+    return sorted(chosen, key=lambda name: report_time(name.split("_")[2], reference), reverse=True)
+
+
 def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
     source = "eccc"
     total = 0
@@ -234,6 +245,9 @@ def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
                     hours.add(cursor)
                     cursor += timedelta(hours=1)
         jobs.extend((center, hour) for hour in sorted(hours))
+    # Prioritize current reception hours. Ingest each file immediately so a large
+    # US collective route cannot hold newer readings until its whole hour finishes.
+    jobs.sort(key=lambda job: job[1], reverse=True)
     # Successful historical immutable file URLs need not be downloaded on every sweep.
     retained = {
         r["url"]: r
@@ -251,7 +265,10 @@ def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
             directory = "https://" + host + path
             try:
                 links = client.links(source, directory)
-                results = []
+                if recent_hours is not None:
+                    links = eccc_live_links(links, center_prefixes[center], hour)
+                added = 0
+                links.sort(key=lambda name: name.split("_")[2] if len(name.split("_")) > 2 else name, reverse=True)
                 for name in links:
                     if not any(
                         name.startswith(prefix) for prefix in center_prefixes[center]
@@ -277,8 +294,9 @@ def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
                         )
                         if r["icao"] in allowed
                     ]
-                    results.append((rows, receipt))
-                return results
+                    for row in rows:
+                        added += client.archive.report(row, receipt)
+                return added
             except HTTPError as error:
                 if error.code == 404 and error.url == directory:
                     missing_directories += 1
@@ -287,22 +305,20 @@ def collect_eccc(client, airports, dates, workers=4, recent_hours=None):
             except (URLError, TimeoutError, OSError, ValueError) as error:
                 failures.append(str(error))
         if missing_directories == 2:
-            return []  # Neither directory exists; this is not proof of completeness.
+            return 0  # Neither directory exists; this is not proof of completeness.
         raise RuntimeError("; ".join(failures))
 
     for result, error in parallel(jobs, fetch, workers):
         if error:
             errors.append(error)
             continue
-        for rows, receipt in result:
-            for row in rows:
-                total += client.archive.report(row, receipt)
+        total += result
     return {
         "source": source,
         "status": "partial" if errors else "ok",
         "reports": total,
         "errors": errors,
-        "scope": "Configured SA bulletin routes, local-day coverage plus six receipt hours. Missing directories are retained in receipts.",
+        "scope": ("Two newest bulletin times per configured route in recent reception hours; all versions at those times. Full history is recovered separately." if recent_hours is not None else "Configured SA bulletin routes, local-day coverage plus six receipt hours. Missing directories are retained in receipts."),
     }
 
 

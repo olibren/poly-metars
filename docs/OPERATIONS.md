@@ -26,6 +26,11 @@ and receipts referenced by a revision are fixed. Existing revisions and evidence
 are never deleted by collection. Only small current indexes/job health records
 are mutable. The live UI evaluates elapsed time independently of that publication.
 
+ECCC live collection prioritizes the two newest bulletin times for each configured
+route, retaining every file/correction at those times. Its separate five-minute
+recovery worker scans all files, including intermediate observations. Initial
+recovery can take longer than one interval; live checks continue throughout.
+
 TGFTP recovery reads timestamped `DS.metar/sn.NNNN.txt` collectives, which rotate.
 Names are not timestamps. Each WMO bulletin retains its own SA/SP classification
 and correction sequence. Cached file versions are reused only when directory
@@ -35,12 +40,16 @@ their retention. The recovery window expands after downtime, up to 30 local date
 ## Deploy
 
 The source-only GitHub `main` branch is connected to the dedicated Vercel project.
+Pushes trigger Vercel builds. The initial GitHub-app repository access was verified
+when the connection succeeded. Manual releases remain available with `vercel --prod`.
 Run `make check build` before pushing. `vercel.json` contains the public HTTPS
 collector origin; no secret is required to read government evidence.
 
 Collector changes are deployed by fetching an exact Git commit on the dedicated
 instance, checking the Python suite, then restarting **only** `poly-metars.service`.
-Use the instance ID recorded in `deploy/production.json`; do not infer a target
+Run `python3 scripts/deploy_collector.py` from a clean, tested and pushed checkout.
+It returns an SSM command ID; inspect its result and live health before declaring
+success. The instance ID is recorded in `deploy/production.json`; do not infer a target
 from a trading deployment script. SSM is the administration path; SSH is closed.
 
 The instance boots through `deploy/bootstrap.sh`, and systemd handles restarts.
