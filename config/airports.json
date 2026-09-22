@@ -1,0 +1,1533 @@
+[
+  {
+    "icao": "EHAM",
+    "city": "Amsterdam",
+    "name": "Amsterdam Airport Schiphol Station",
+    "timezone": "Europe/Amsterdam",
+    "unit": "C",
+    "routine_minutes_utc": [
+      25,
+      55
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-amsterdam-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-amsterdam-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-amsterdam-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-amsterdam-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-amsterdam-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-amsterdam-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sanl31.ehdb..txt",
+      "sanl31.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SANL31_EHDB",
+      "SANL31_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "LTAC",
+    "city": "Ankara",
+    "name": "Esenbo\u011fa Intl Airport Station",
+    "timezone": "Europe/Istanbul",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-ankara-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-ankara-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-ankara-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-ankara-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-ankara-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-ankara-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saaw31.kwbc..txt",
+      "satu31.ltaa..txt",
+      "saxx61.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAW31_KWBC",
+      "SATU31_LTAA",
+      "SAXX61_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KATL",
+    "city": "Atlanta",
+    "name": "Hartsfield-Jackson International Airport Station",
+    "timezone": "America/New_York",
+    "unit": "F",
+    "routine_minutes_utc": [
+      52
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-atlanta-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-atlanta-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-atlanta-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-atlanta-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-atlanta-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-atlanta-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus70.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS70_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KAUS",
+    "city": "Austin",
+    "name": "Austin-Bergstrom International Airport Station",
+    "timezone": "America/Chicago",
+    "unit": "F",
+    "routine_minutes_utc": [
+      53
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-austin-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-austin-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-austin-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-austin-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-austin-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-austin-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus70.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS70_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZBAA",
+    "city": "Beijing",
+    "name": "Beijing Capital International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-beijing-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-beijing-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-beijing-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-beijing-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-beijing-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-beijing-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci31.zbbb..txt",
+      "saci32.kwbc..txt",
+      "saci51.rjtd..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI31_ZBBB",
+      "SACI32_KWBC",
+      "SACI51_RJTD"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "SAEZ",
+    "city": "Buenos Aires",
+    "name": "Minister Pistarini Intl Airport Station",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-buenos-aires-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-buenos-aires-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-buenos-aires-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-buenos-aires-on-september-23-2026"
+    ],
+    "tgftp_files": [
+      "saag01.sabm..txt",
+      "saag05.sabm..txt",
+      "saag31.kwbc..txt",
+      "sabz35.sbbr..txt",
+      "sasa31.xxsa..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAG01_SABM",
+      "SAAG05_SABM",
+      "SAAG31_KWBC",
+      "SABZ35_SBBR",
+      "SASA31_XXSA"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "RKPK",
+    "city": "Busan",
+    "name": "Gimhae Intl Airport Station",
+    "timezone": "Asia/Seoul",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-busan-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-busan-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-busan-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-busan-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-busan-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-busan-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saas32.kwbc..txt",
+      "sako31.kwbc..txt",
+      "sako31.rksi..txt",
+      "sako51.rjtd..txt",
+      "saxx62.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAS32_KWBC",
+      "SAKO31_KWBC",
+      "SAKO31_RKSI",
+      "SAKO51_RJTD",
+      "SAXX62_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "FACT",
+    "city": "Cape Town",
+    "name": "Cape Town International Airport Station",
+    "timezone": "Africa/Johannesburg",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-cape-town-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-cape-town-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-cape-town-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-cape-town-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-cape-town-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-cape-town-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saap31.fapr..txt",
+      "saza31.fapr..txt",
+      "saza31.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAP31_FAPR",
+      "SAZA31_FAPR",
+      "SAZA31_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZUUU",
+    "city": "Chengdu",
+    "name": "Chengdu Shuangliu International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-chengdu-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-chengdu-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-chengdu-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chengdu-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chengdu-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chengdu-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci32.kwbc..txt",
+      "saci32.zbbb..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI32_KWBC",
+      "SACI32_ZBBB"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KORD",
+    "city": "Chicago",
+    "name": "Chicago O'Hare Intl Airport Station",
+    "timezone": "America/Chicago",
+    "unit": "F",
+    "routine_minutes_utc": [
+      51
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-chicago-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-chicago-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-chicago-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chicago-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chicago-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chicago-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus70.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS70_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZUCK",
+    "city": "Chongqing",
+    "name": "Chongqing Jiangbei International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-chongqing-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-chongqing-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-chongqing-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chongqing-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chongqing-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-chongqing-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci32.kwbc..txt",
+      "saci41.zbbb..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI32_KWBC",
+      "SACI41_ZBBB"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KDAL",
+    "city": "Dallas",
+    "name": "Dallas Love Field Station",
+    "timezone": "America/Chicago",
+    "unit": "F",
+    "routine_minutes_utc": [
+      53
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-dallas-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-dallas-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-dallas-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-dallas-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-dallas-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-dallas-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus80.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS80_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KBKF",
+    "city": "Denver",
+    "name": "Buckley Space Force Base Station",
+    "timezone": "America/Denver",
+    "unit": "F",
+    "routine_minutes_utc": [
+      58
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-denver-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-denver-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-denver-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-denver-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-denver-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-denver-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saxx60.kwbc..txt",
+      "saxx99.kawn..txt"
+    ],
+    "eccc_bulletins": [
+      "SAXX60_KWBC",
+      "SAXX99_KAWN"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZGGG",
+    "city": "Guangzhou",
+    "name": "Guangzhou Baiyun International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-guangzhou-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-guangzhou-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-guangzhou-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-guangzhou-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-guangzhou-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-guangzhou-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci31.zbbb..txt",
+      "saci32.kwbc..txt",
+      "saci51.rjtd..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI31_ZBBB",
+      "SACI32_KWBC",
+      "SACI51_RJTD"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "EFHK",
+    "city": "Helsinki",
+    "name": "Helsinki Vantaa Airport Station",
+    "timezone": "Europe/Helsinki",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-helsinki-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-helsinki-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-helsinki-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-helsinki-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-helsinki-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-helsinki-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saen31.kwbc..txt",
+      "safi31.efkl..txt"
+    ],
+    "eccc_bulletins": [
+      "SAEN31_KWBC",
+      "SAFI31_EFKL"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KHOU",
+    "city": "Houston",
+    "name": "William P. Hobby Airport Station",
+    "timezone": "America/Chicago",
+    "unit": "F",
+    "routine_minutes_utc": [
+      53
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-houston-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-houston-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-houston-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-houston-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-houston-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-houston-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus70.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS70_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "LTFM",
+    "city": "Istanbul",
+    "name": "Istanbul Airport",
+    "timezone": "Europe/Istanbul",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-istanbul-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-istanbul-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-istanbul-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-istanbul-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-istanbul-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-istanbul-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "satu31.ltaa..txt"
+    ],
+    "eccc_bulletins": [
+      "SATU31_LTAA"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "OEJN",
+    "city": "Jeddah",
+    "name": "King Abdulaziz International Airport Station",
+    "timezone": "Asia/Riyadh",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-jeddah-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-jeddah-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-jeddah-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-jeddah-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-jeddah-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-jeddah-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saaw32.kwbc..txt",
+      "sasd20.oejd..txt",
+      "sasd31.oejd..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAW32_KWBC",
+      "SASD20_OEJD",
+      "SASD31_OEJD"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZSJN",
+    "city": "Jinan",
+    "name": "Jinan Yaoqiang International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-08-10",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-jinan-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-jinan-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-jinan-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-jinan-on-september-23-2026"
+    ],
+    "tgftp_files": [],
+    "eccc_bulletins": [],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "OPKC",
+    "city": "Karachi",
+    "name": "Masroor Airbase Station",
+    "timezone": "Asia/Karachi",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-karachi-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-karachi-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-karachi-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-karachi-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-karachi-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-karachi-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saaw34.kwbc..txt",
+      "sapk31.opkc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAW34_KWBC",
+      "SAPK31_OPKC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "WMKK",
+    "city": "Kuala Lumpur",
+    "name": "Kuala Lumpur Intl Airport Station",
+    "timezone": "Asia/Kuala_Lumpur",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-kuala-lumpur-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-kuala-lumpur-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-kuala-lumpur-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-kuala-lumpur-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-kuala-lumpur-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-kuala-lumpur-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saas33.kwbc..txt",
+      "sams31.wmkk..txt",
+      "sams32.wmkk..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAS33_KWBC",
+      "SAMS31_WMKK",
+      "SAMS32_WMKK"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "EGLC",
+    "city": "London",
+    "name": "London City Airport Station",
+    "timezone": "Europe/London",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-london-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-london-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-london-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-london-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-london-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-london-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sauk32.eggy..txt",
+      "sauk41.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUK32_EGGY",
+      "SAUK41_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KLAX",
+    "city": "Los Angeles",
+    "name": "Los Angeles International Airport Station",
+    "timezone": "America/Los_Angeles",
+    "unit": "F",
+    "routine_minutes_utc": [
+      53
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-los-angeles-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-los-angeles-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-los-angeles-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-los-angeles-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-los-angeles-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus46.klox.mtr.lax.txt",
+      "saus80.kwbc..txt",
+      "saus90.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS46_KLOX",
+      "SAUS80_KWBC",
+      "SAUS90_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "VILK",
+    "city": "Lucknow",
+    "name": "Chaudhary Charan Singh Intl Airport Station",
+    "timezone": "Asia/Kolkata",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-lucknow-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-lucknow-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-lucknow-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-lucknow-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-lucknow-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-lucknow-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sain31.vidp..txt",
+      "sain32.vidp..txt",
+      "sain90.vilk..txt",
+      "saxx99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAIN31_VIDP",
+      "SAIN32_VIDP",
+      "SAIN90_VILK",
+      "SAXX99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "LEMD",
+    "city": "Madrid",
+    "name": "Adolfo Su\u00e1rez Madrid-Barajas Airport Station",
+    "timezone": "Europe/Madrid",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-madrid-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-madrid-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-madrid-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-madrid-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-madrid-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-madrid-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sasp31.kwbc..txt",
+      "sasp31.lemm..txt"
+    ],
+    "eccc_bulletins": [
+      "SASP31_KWBC",
+      "SASP31_LEMM"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "RPLL",
+    "city": "Manila",
+    "name": "Ninoy Aquino International Airport Station",
+    "timezone": "Asia/Manila",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-manila-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-manila-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-manila-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-manila-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-manila-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-manila-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sahk32.vhhh..txt",
+      "saph31.kwbc..txt",
+      "saph31.rpll..txt"
+    ],
+    "eccc_bulletins": [
+      "SAHK32_VHHH",
+      "SAPH31_KWBC",
+      "SAPH31_RPLL"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "MMMX",
+    "city": "Mexico City",
+    "name": "Mexico City International Airport",
+    "timezone": "America/Mexico_City",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": null,
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-mexico-city-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-mexico-city-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-mexico-city-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-mexico-city-on-september-23-2026"
+    ],
+    "tgftp_files": [
+      "samx41.mmmx..txt"
+    ],
+    "eccc_bulletins": [
+      "SAMX41_MMMX"
+    ],
+    "route_status": "candidate_routes_coverage_measured_in_ledger",
+    "schedule_status": "candidate_schedule_requires_review",
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KMIA",
+    "city": "Miami",
+    "name": "Miami Intl Airport Station",
+    "timezone": "America/New_York",
+    "unit": "F",
+    "routine_minutes_utc": [
+      53
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-miami-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-miami-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-miami-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-miami-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-miami-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-miami-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus70.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS70_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "LIMC",
+    "city": "Milan",
+    "name": "Malpensa Intl Airport Station",
+    "timezone": "Europe/Rome",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-milan-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-milan-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-milan-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-milan-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-milan-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-milan-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saiy31.kwbc..txt",
+      "saiy31.liib..txt",
+      "saiy41.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAIY31_KWBC",
+      "SAIY31_LIIB",
+      "SAIY41_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "UUWW",
+    "city": "Moscow",
+    "name": "Vnukovo International Airport",
+    "timezone": "Europe/Moscow",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-moscow-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-moscow-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-moscow-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-moscow-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-moscow-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-moscow-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sars31.kwbc..txt",
+      "sars33.uuuj..txt",
+      "sars41.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SARS31_KWBC",
+      "SARS33_UUUJ",
+      "SARS41_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "EDDM",
+    "city": "Munich",
+    "name": "Munich Airport Station",
+    "timezone": "Europe/Berlin",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-munich-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-munich-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-munich-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-munich-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-munich-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-munich-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sadl31.edzo..txt",
+      "sadl31.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SADL31_EDZO",
+      "SADL31_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KLGA",
+    "city": "NYC",
+    "name": "LaGuardia Airport Station",
+    "timezone": "America/New_York",
+    "unit": "F",
+    "routine_minutes_utc": [
+      51
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-nyc-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-nyc-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-nyc-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-nyc-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-nyc-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-nyc-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus70.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS70_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "MPMG",
+    "city": "Panama City",
+    "name": "Marcos A. Gelabert Intl Airport Station",
+    "timezone": "America/Panama",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-panama-city-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-panama-city-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-panama-city-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-panama-city-on-september-23-2026"
+    ],
+    "tgftp_files": [
+      "saca35.kwbc..txt",
+      "sapm31.mpto..txt"
+    ],
+    "eccc_bulletins": [
+      "SACA35_KWBC",
+      "SAPM31_MPTO"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "LFPB",
+    "city": "Paris",
+    "name": "Paris-Le Bourget Airport Station",
+    "timezone": "Europe/Paris",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-paris-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-paris-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-paris-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-paris-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-paris-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-paris-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "safr32.kwbc..txt",
+      "safr34.lfpw..txt",
+      "safr41.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAFR32_KWBC",
+      "SAFR34_LFPW",
+      "SAFR41_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZSQD",
+    "city": "Qingdao",
+    "name": "Qingdao Jiaodong International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-05-02",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-qingdao-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-qingdao-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-qingdao-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-qingdao-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-qingdao-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-qingdao-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci32.zbbb..txt",
+      "saci51.rjtd..txt",
+      "saxx99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI32_ZBBB",
+      "SACI51_RJTD",
+      "SAXX99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KSFO",
+    "city": "San Francisco",
+    "name": "San Francisco International Airport Station",
+    "timezone": "America/Los_Angeles",
+    "unit": "F",
+    "routine_minutes_utc": [
+      56
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-san-francisco-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-san-francisco-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-san-francisco-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-san-francisco-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-san-francisco-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus80.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS80_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "SBGR",
+    "city": "Sao Paulo",
+    "name": "Sao Paulo-Guarulhos International Airport Station",
+    "timezone": "America/Sao_Paulo",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-sao-paulo-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-sao-paulo-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-sao-paulo-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-sao-paulo-on-september-23-2026"
+    ],
+    "tgftp_files": [
+      "sabz11.sbbr..txt",
+      "sabz31.kwbc..txt",
+      "sabz33.sbbr..txt",
+      "saxx99.sbbr..txt"
+    ],
+    "eccc_bulletins": [
+      "SABZ11_SBBR",
+      "SABZ31_KWBC",
+      "SABZ33_SBBR",
+      "SAXX99_SBBR"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "KSEA",
+    "city": "Seattle",
+    "name": "Seattle-Tacoma International Airport Station",
+    "timezone": "America/Los_Angeles",
+    "unit": "F",
+    "routine_minutes_utc": [
+      53
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-seattle-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-seattle-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-seattle-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-seattle-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-seattle-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saus19.knka..txt",
+      "saus80.kwbc..txt",
+      "saus99.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAUS19_KNKA",
+      "SAUS80_KWBC",
+      "SAUS99_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "RKSI",
+    "city": "Seoul (Incheon)",
+    "name": "Incheon International Airport",
+    "timezone": "Asia/Seoul",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": null,
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-seoul-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-seoul-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-seoul-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-seoul-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-seoul-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-seoul-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saas32.kwbc..txt",
+      "sako31.kwbc..txt",
+      "sako31.rksi..txt",
+      "sako51.rjtd..txt",
+      "saxx62.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAS32_KWBC",
+      "SAKO31_KWBC",
+      "SAKO31_RKSI",
+      "SAKO51_RJTD",
+      "SAXX62_KWBC"
+    ],
+    "route_status": "candidate_routes_coverage_measured_in_ledger",
+    "schedule_status": "candidate_schedule_requires_review",
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZSPD",
+    "city": "Shanghai",
+    "name": "Shanghai Pudong International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-shanghai-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-shanghai-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-shanghai-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-shanghai-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-shanghai-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-shanghai-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci31.zbbb..txt",
+      "saci32.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI31_ZBBB",
+      "SACI32_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZGSZ",
+    "city": "Shenzhen",
+    "name": "Shenzhen Bao\u2019an International Airport",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": null,
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-shenzhen-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-shenzhen-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-shenzhen-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-shenzhen-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-shenzhen-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-shenzhen-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci31.zbbb..txt",
+      "saci32.kwbc..txt",
+      "saci51.rjtd..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI31_ZBBB",
+      "SACI32_KWBC",
+      "SACI51_RJTD"
+    ],
+    "route_status": "candidate_routes_coverage_measured_in_ledger",
+    "schedule_status": "candidate_schedule_requires_review",
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "WSSS",
+    "city": "Singapore",
+    "name": "Singapore Changi Airport Station",
+    "timezone": "Asia/Singapore",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-singapore-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-singapore-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-singapore-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-singapore-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-singapore-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-singapore-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saas33.kwbc..txt",
+      "sams31.wmkk..txt",
+      "sasr31.wsss..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAS33_KWBC",
+      "SAMS31_WMKK",
+      "SASR31_WSSS"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "RCSS",
+    "city": "Taipei",
+    "name": "Taipei Songshan Airport Station",
+    "timezone": "Asia/Taipei",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-08-27",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-taipei-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-taipei-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-taipei-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-taipei-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-taipei-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-taipei-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sahk33.vhhh..txt"
+    ],
+    "eccc_bulletins": [
+      "SAHK33_VHHH"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "LLBG",
+    "city": "Tel Aviv",
+    "name": "Ben Gurion International Airport",
+    "timezone": "Asia/Jerusalem",
+    "unit": "C",
+    "routine_minutes_utc": [
+      20,
+      50
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-tel-aviv-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-tel-aviv-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-tel-aviv-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-tel-aviv-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-tel-aviv-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-tel-aviv-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saaw31.kwbc..txt",
+      "sais32.llbg..txt"
+    ],
+    "eccc_bulletins": [
+      "SAAW31_KWBC",
+      "SAIS32_LLBG"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "RJTT",
+    "city": "Tokyo",
+    "name": "Tokyo Haneda Airport Station",
+    "timezone": "Asia/Tokyo",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-tokyo-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-tokyo-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-tokyo-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-tokyo-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-tokyo-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-tokyo-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sajp31.kwbc..txt",
+      "sajp31.rjtd..txt",
+      "sajp35.rjtd..txt",
+      "sajp37.rjtd..txt",
+      "sajp51.rjtd..txt"
+    ],
+    "eccc_bulletins": [
+      "SAJP31_KWBC",
+      "SAJP31_RJTD",
+      "SAJP35_RJTD",
+      "SAJP37_RJTD",
+      "SAJP51_RJTD"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "CYYZ",
+    "city": "Toronto",
+    "name": "Toronto Pearson Intl Airport Station",
+    "timezone": "America/Toronto",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-toronto-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-toronto-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-toronto-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-toronto-on-september-23-2026"
+    ],
+    "tgftp_files": [
+      "sacn31.cwao..txt",
+      "sacn31.kwbc..txt"
+    ],
+    "eccc_bulletins": [
+      "SACN31_CWAO",
+      "SACN31_KWBC"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "EPWA",
+    "city": "Warsaw",
+    "name": "Warsaw Chopin Airport Station",
+    "timezone": "Europe/Warsaw",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-warsaw-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-warsaw-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-warsaw-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-warsaw-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-warsaw-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-warsaw-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saee31.kwbc..txt",
+      "sapl31.epwa..txt"
+    ],
+    "eccc_bulletins": [
+      "SAEE31_KWBC",
+      "SAPL31_EPWA"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "NZWN",
+    "city": "Wellington",
+    "name": "Wellington Intl Airport Station",
+    "timezone": "Pacific/Auckland",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0,
+      30
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-wellington-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-wellington-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-wellington-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-wellington-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-wellington-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-wellington-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "sanz31.kwbc..txt",
+      "sanz31.nzkl..txt"
+    ],
+    "eccc_bulletins": [
+      "SANZ31_KWBC",
+      "SANZ31_NZKL"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZHHH",
+    "city": "Wuhan",
+    "name": "Wuhan Tianhe International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-04-30",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-wuhan-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-wuhan-on-september-23-2026",
+      "https://polymarket.com/event/highest-temperature-in-wuhan-on-september-24-2026",
+      "https://polymarket.com/event/lowest-temperature-in-wuhan-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-wuhan-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-wuhan-on-september-24-2026"
+    ],
+    "tgftp_files": [
+      "saci32.kwbc..txt",
+      "saci41.zbbb..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI32_KWBC",
+      "SACI41_ZBBB"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  },
+  {
+    "icao": "ZHCC",
+    "city": "Zhengzhou",
+    "name": "Zhengzhou Xinzheng International Airport Station",
+    "timezone": "Asia/Shanghai",
+    "unit": "C",
+    "routine_minutes_utc": [
+      0
+    ],
+    "schedule_reviewed_at": "2026-08-10",
+    "registry_status": "current_market_verified",
+    "market_urls": [
+      "https://polymarket.com/event/highest-temperature-in-zhengzhou-on-september-22-2026",
+      "https://polymarket.com/event/highest-temperature-in-zhengzhou-on-september-23-2026",
+      "https://polymarket.com/event/lowest-temperature-in-zhengzhou-on-september-22-2026",
+      "https://polymarket.com/event/lowest-temperature-in-zhengzhou-on-september-23-2026"
+    ],
+    "tgftp_files": [
+      "saci41.zbbb..txt"
+    ],
+    "eccc_bulletins": [
+      "SACI41_ZBBB"
+    ],
+    "market_checked_at": "2026-09-22T11:51:58Z"
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "version": "routine-metar-v1",
+  "source_order": ["noaa_awc", "noaa_tgftp", "eccc"],
+  "report_types": ["METAR"],
+  "temperature": "Use the raw METAR T group when present and consistent; otherwise the main Celsius temperature group.",
+  "rounding": "Convert Celsius to market units, then round half away from zero to a whole degree.",
+  "day": "Airport local calendar day, including DST transitions.",
+  "corrections": "Highest explicit correction rank within each source; equally ranked temperature conflicts block that source. Arrival order never resolves a conflict.",
+  "cross_source_conflicts": "Select by source order and display the disagreement.",
+  "delivery_grace_minutes": 15,
+  "finalization": "No automatic finalization. All daily extremes are provisional review candidates.",
+  "unknown_classification": "Exclude, retain and explain. Never infer routine status from a scheduled minute."
+}

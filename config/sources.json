@@ -1,0 +1,26 @@
+[
+  {
+    "id": "noaa_awc",
+    "label": "NOAA / AWC",
+    "agency": "NOAA \u00b7 United States",
+    "documentation": "https://aviationweather.gov/data/api/",
+    "retention": "Up to 30 days, per AWC documentation",
+    "agency_family": "NOAA"
+  },
+  {
+    "id": "noaa_tgftp",
+    "label": "NOAA / TGFTP",
+    "agency": "NOAA \u00b7 United States",
+    "documentation": "https://www.weather.gov/tg/obsfiles",
+    "retention": "Latest SA bulletins plus rotating collective files; not a permanent archive",
+    "agency_family": "NOAA"
+  },
+  {
+    "id": "eccc",
+    "label": "ECCC",
+    "agency": "Environment Canada \u00b7 Canada",
+    "documentation": "https://eccc-msc.github.io/open-data/msc-datamart/readme_en/",
+    "retention": "30 days, subject to provider retention",
+    "agency_family": "ECCC"
+  }
+]

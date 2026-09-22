@@ -1,0 +1,23 @@
+[Unit]
+Description=Poly METARs government observation collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=poly-metars
+Group=poly-metars
+WorkingDirectory=/opt/poly-metars
+ExecStart=/usr/bin/python3 -u -m ledger.http --root /var/lib/poly-metars --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/poly-metars
+UMask=0022
+MemoryMax=1500M
+
+[Install]
+WantedBy=multi-user.target
