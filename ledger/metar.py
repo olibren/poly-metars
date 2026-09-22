@@ -108,6 +108,24 @@ def parse_report(raw, reference, *, kind=None, correction=0, observed_at=None):
     }
 
 
+def parse_awc(item):
+    """Preserve AWC's per-report receipt time, never substitute our fetch time."""
+    observed = datetime.fromtimestamp(item["obsTime"], UTC)
+    row = parse_report(item["rawOb"], observed, kind=item.get("metarType"),
+                       observed_at=observed.isoformat())
+    row["source_received_at"] = None
+    value = item.get("receiptTime")
+    if isinstance(value, str):
+        try:
+            received = parse_time(value)
+            if received >= observed:
+                # Milliseconds distinguish versions received within one second.
+                row["source_received_at"] = received.isoformat(timespec="microseconds").replace("+00:00", "Z")
+        except ValueError:
+            pass  # Invalid ordering metadata does not invalidate the METAR itself.
+    return row
+
+
 def parse_bulletin(text, reference):
     """Retain a bulletin's SA/SP classification and explicit correction sequence."""
     header = HEADER.search(text)

@@ -5,7 +5,7 @@ from email.utils import parsedate_to_datetime
 import json
 import re
 
-from .metar import UTC, parse_bulletin, parse_report, parse_time, parse_collective
+from .metar import UTC, parse_bulletin, parse_awc, parse_time, parse_collective
 
 
 def bulletin_reference(receipt):
@@ -37,13 +37,7 @@ def decode(body, receipt):
             raise ValueError("Expected AWC report array")
         for item in payload:
             try:
-                observed = datetime.fromtimestamp(item["obsTime"], UTC)
-                yield parse_report(
-                    item["rawOb"],
-                    observed,
-                    kind=item.get("metarType"),
-                    observed_at=observed.isoformat(),
-                )
+                yield parse_awc(item)
             except (ValueError, KeyError):
                 continue  # Rejected inputs cannot substantiate an accepted report.
     else:
@@ -82,11 +76,17 @@ def verify_evidence(reports, receipts, object_directory):
             raise ValueError("Accepted report references an unsuccessful response")
         if receipt["id"] not in parsed_cache:
             body = (object_directory / f"{receipt['body_sha256']}.txt").read_bytes()
-            parsed_cache[receipt["id"]] = {
-                digest(canonical({**row, "source": receipt["source"]}))
-                for row in decode(body, receipt)
-                if "parse_error" not in row
-            }
+            identities = set()
+            for row in decode(body, receipt):
+                if "parse_error" in row:
+                    continue
+                identities.add(digest(canonical({**row, "source": receipt["source"]})))
+                # Pre-v2 reports omit source timing. Preserve their exact identities
+                # and replay, while new timing claims must match the original JSON.
+                if "source_received_at" in row:
+                    legacy = {k: v for k, v in row.items() if k != "source_received_at"}
+                    identities.add(digest(canonical({**legacy, "source": receipt["source"]})))
+            parsed_cache[receipt["id"]] = identities
         if report["id"] not in parsed_cache[receipt["id"]]:
             raise ValueError(
                 "Normalized report is not supported by its original response"

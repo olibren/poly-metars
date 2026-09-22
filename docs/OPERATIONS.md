@@ -97,6 +97,15 @@ half-written days or overwrite a newer index. Repeating an interrupted publicati
 reuses the original manifest timestamp. Source conflicts and missing readings are
 handled by the shared policy, never by interpolation or majority voting.
 
+The `routine-metar-v2` policy preserves AWC's per-report `receiptTime` separately
+from the collector's `fetched_at`. New AWC records include this source timing in
+their deterministic identity; re-fetching a legacy report can add a timed copy
+without altering the original row or receipt. Live, recovery and offline replay
+use the same decoder. No database migration is required. TGFTP/ECCC file dates
+are not used to order individual report versions. Missing or invalid timing stays
+unordered, and unresolved selection is reported automatically without a manual
+review workflow. This change does not configure market finality.
+
 R2 retains evidence, receipts, reports, rejected records and revisions without an
 application deletion path. D1 retains 90 days of reports and their referenced
 receipts, 3 days of unreferenced receipts, and bounded expired task history.

@@ -1,13 +1,26 @@
 {
-  "version": "routine-metar-v1",
-  "source_order": ["noaa_awc", "noaa_tgftp", "eccc"],
-  "report_types": ["METAR"],
+  "version": "routine-metar-v2",
+  "source_order": [
+    "noaa_awc",
+    "noaa_tgftp",
+    "eccc"
+  ],
+  "report_types": [
+    "METAR"
+  ],
   "temperature": "Use the raw METAR T group when present and consistent; otherwise the main Celsius temperature group.",
   "rounding": "Convert Celsius to market units, then round half away from zero to a whole degree.",
   "day": "Airport local calendar day, including DST transitions.",
-  "corrections": "Highest explicit correction rank within each source; equally ranked temperature conflicts block that source. Arrival order never resolves a conflict.",
-  "cross_source_conflicts": "Select by source order and display the disagreement.",
+  "corrections": "Highest explicit correction rank within each source, then its latest supported per-report receipt time. Preserve all versions. Never use local fetch order or file modification time.",
+  "cross_source_conflicts": "Select by source order and display the disagreement; a selected reading does not require human review.",
   "delivery_grace_minutes": 15,
-  "finalization": "No automatic finalization. All daily extremes are provisional review candidates.",
-  "unknown_classification": "Exclude, retain and explain. Never infer routine status from a scheduled minute."
+  "finalization": "No automatic finalization or settlement cutoff. Selected daily extremes remain provisional; unresolved selection and missing coverage are reported automatically.",
+  "unknown_classification": "Exclude, retain and explain. Never infer routine status from a scheduled minute.",
+  "revision_order": "source_receipt_time",
+  "source_timing": {
+    "noaa_awc": "receiptTime from the original AWC JSON; preserve subsecond precision.",
+    "noaa_tgftp": null,
+    "eccc": null
+  },
+  "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version."
 }

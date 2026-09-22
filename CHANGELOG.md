@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-22 — Source receipt ordering (routine-metar-v2)
+
+- Preserve AWC per-report receipt times, including subsecond precision, in report identities and raw-evidence replay across live, recovery and Cloudflare collection.
+- Within source priority and the highest explicit correction rank, select the latest supported source receipt time; never use download order, file age or bulletin position.
+- Retain equal-time and unorderable conflicts as automatic blocked observations, including ambiguous withdrawals. Show resolved disagreements without a human-review status.
+- Preserve the v1 policy and exact old-snapshot replay; expose source receipt times in the evidence view. Finalization and settlement remain unconfigured.
+
 ## 2026-09-22 — Cloudflare migration
 
 - Added a Cloudflare-only runtime: scheduled Python Worker, independent live/recovery queues, D1 working index and R2 evidence archive.

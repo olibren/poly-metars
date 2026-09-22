@@ -32,6 +32,7 @@ type Report = {
   report_type: string;
   observed_at: string;
   fetched_at: string;
+  source_received_at?: string | null;
   url: string;
   body_sha256: string;
   correction: number;
@@ -73,6 +74,7 @@ type Day = {
   };
   excluded: Report[];
   policy_sha256: string;
+  policy_version?: string;
 };
 type Index = {
   mode?: string;
@@ -412,9 +414,11 @@ export default function Home() {
               still determines the selected reading.
             </p>
             <p>
-              Explicit corrections supersede originals within a source. Equally
-              ranked, conflicting revisions from the highest available source
-              block selection. SPECI, unclassified reports, missing temperatures
+              Explicit corrections supersede originals within a source.{' '}
+              {day?.policy_version === 'routine-metar-v2'
+                ? 'Within a correction rank, the latest supported per-report source receipt time wins. Equal-time or unorderable conflicts block selection; download order never breaks a tie.'
+                : 'Equally ranked, conflicting revisions from the highest available source block selection.'}{' '}
+              SPECI, unclassified reports, missing temperatures
               and malformed reports do not enter the routine-only calculation.
               Daily highs and lows use the airport’s local calendar day.
             </p>
@@ -473,7 +477,9 @@ export default function Home() {
                     ? 'collection stale'
                     : missingNow
                       ? 'incomplete'
-                      : 'awaiting final review'}
+                      : day.summary.status === 'unresolved'
+                        ? 'unresolved observations'
+                        : 'no settlement cutoff configured'}
                 </small>
               </div>
             </section>
@@ -602,6 +608,8 @@ export default function Home() {
                                             ? `${r.precision} · correction rank ${r.correction}`
                                             : `Excluded: ${r.reason}`}{' '}
                                           · Retrieved {r.fetched_at}
+                                          {r.source_received_at &&
+                                            ` · Source received ${r.source_received_at}`}
                                         </p>
                                         <a
                                           href={r.url}

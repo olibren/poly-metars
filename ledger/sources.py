@@ -12,7 +12,7 @@ import re
 from email.utils import parsedate_to_datetime
 import threading
 import time
-from .metar import UTC, iso, parse_time, parse_report, parse_bulletin, parse_collective, report_time
+from .metar import UTC, iso, parse_time, parse_awc, parse_bulletin, parse_collective, report_time
 from .policy import day_bounds
 from .evidence import bulletin_reference
 
@@ -144,11 +144,8 @@ def collect_awc(client, airports, dates, workers=4):
         for item in payload:
             if item.get("icaoId") != airport["icao"]:
                 continue
-            obs = datetime.fromtimestamp(item["obsTime"], UTC)
             try:
-                row = parse_report(
-                    item["rawOb"], obs, kind=item.get("metarType"), observed_at=iso(obs)
-                )
+                row = parse_awc(item)
             except (ValueError, KeyError) as error:
                 row = {
                     "icao": airport["icao"],
@@ -341,9 +338,8 @@ def collect_awc_recent(client, airports, dates=None, workers=4):
         for item in payload:
             if item.get("icaoId") not in allowed:
                 continue
-            obs = datetime.fromtimestamp(item["obsTime"], UTC)
             try:
-                row = parse_report(item["rawOb"], obs, kind=item.get("metarType"), observed_at=iso(obs))
+                row = parse_awc(item)
             except (ValueError, KeyError) as error:
                 row = {"icao": item["icaoId"], "raw": item.get("rawOb"), "parse_error": str(error)}
             rows.append(row)

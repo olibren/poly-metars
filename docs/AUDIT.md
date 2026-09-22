@@ -19,6 +19,13 @@ The verifier checks raw response hashes, receipt and report identities, reparses
 the original METARs, and recomputes the source hierarchy, each selected reading,
 and the daily high and low. It rejects mismatches. It does not infer absent reports.
 
+Replay preserves the policy embedded in the manifest. Legacy v1 report identities
+remain verifiable even when their original AWC JSON contains a receipt time that
+was not normalized at collection. V2 records expose `source_received_at`; the
+verifier checks that exact value against the original JSON, including subsecond
+precision. Changing a normalized source time and recomputing its report hash cannot
+make an unsupported latest-version claim pass replay.
+
 Cloudflare stores raw evidence once and shares it across revisions. This avoids
 copying large global bulletins into thousands of overlapping ZIP files. The
 downloaded directory is the complete portable audit bundle; zip it if desired.

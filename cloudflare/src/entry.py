@@ -17,7 +17,7 @@ import js
 from pyodide.ffi import to_js
 from workers import WorkerEntrypoint, Response
 
-from ledger.metar import UTC, iso, parse_time, parse_report
+from ledger.metar import UTC, iso, parse_time, parse_awc
 from ledger.evidence import decode
 from ledger.sources import Links, collective_listing, eccc_live_links
 from ledger.policy import daily, day_bounds
@@ -249,8 +249,7 @@ class Default(WorkerEntrypoint):
                 if item.get("icaoId") not in allowed:
                     continue
                 try:
-                    stamp = datetime.fromtimestamp(item["obsTime"], UTC)
-                    parsed.append(parse_report(item["rawOb"], stamp, kind=item.get("metarType"), observed_at=iso(stamp)))
+                    parsed.append(parse_awc(item))
                 except (ValueError, KeyError) as error:
                     parsed.append({"icao": item.get("icaoId"), "raw": item.get("rawOb"), "parse_error": str(error)})
         else:

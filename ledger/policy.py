@@ -6,11 +6,59 @@ from zoneinfo import ZoneInfo
 from .metar import UTC, iso, parse_time
 
 
-def source_choice(reports):
+def _reading(report):
+    return report["temperature_c"] if report["eligible"] else None
+
+
+def _version(report):
+    """Match legacy copies to timed copies without conflating distinct reports."""
+    return tuple(report.get(k) for k in (
+        "raw", "report_type", "correction", "eligible", "reason", "temperature_c", "precision",
+    ))
+
+
+def _latest_source_versions(reports):
+    timed, untimed = [], []
+    for report in reports:
+        value = report.get("source_received_at")
+        if report["source"] == "noaa_awc" and isinstance(value, str):
+            try:
+                stamp = parse_time(value)
+                if stamp >= parse_time(report["observed_at"]):
+                    timed.append((stamp, report))
+                    continue
+            except ValueError:
+                pass
+        untimed.append(report)
+    if not timed:
+        return reports, False
+    latest = max(stamp for stamp, _ in timed)
+    known = {_version(report) for _, report in timed}
+    # A re-fetched legacy copy has no independent unknown version order. Distinct
+    # untimed versions remain candidates; never assume they precede timed ones.
+    candidates = [report for stamp, report in timed if stamp == latest]
+    candidates.extend(report for report in untimed if _version(report) not in known)
+    return sorted(candidates, key=lambda r: r["id"]), True
+
+
+def source_choice(reports, revision_order=None):
     variants = sorted(reports, key=lambda r: (r["correction"], r["id"]))
     if not variants:
         return {"report": None, "ambiguous": False, "variants": variants}
     rank = max(r["correction"] for r in variants)
+    if revision_order == "source_receipt_time":
+        ranked = [r for r in variants if r["correction"] == rank]
+        candidates, ordered = _latest_source_versions(ranked)
+        readings = {_reading(r) for r in candidates}
+        ambiguous = len(readings) > 1
+        eligible = [r for r in candidates if r["eligible"]]
+        return {
+            "report": eligible[0] if eligible and not ambiguous else None,
+            "ambiguous": ambiguous,
+            "variants": variants,
+            "selection_basis": "source_receipt_time" if ordered else "correction_rank",
+            "revision_disagreement": len({_reading(r) for r in ranked}) > 1,
+        }
     newest = [r for r in variants if r["correction"] == rank and r["eligible"]]
     if not newest:
         return {"report": None, "ambiguous": False, "variants": variants}
@@ -24,9 +72,11 @@ def source_choice(reports):
     }
 
 
-def resolve(reports, source_order):
+def resolve(reports, source_order, *, revision_order=None):
+    if revision_order not in (None, "source_receipt_time"):
+        raise ValueError("Unsupported revision order: " + str(revision_order))
     sources = {
-        source: source_choice([r for r in reports if r["source"] == source])
+        source: source_choice([r for r in reports if r["source"] == source], revision_order)
         for source in source_order
     }
     selected, blocked = None, False
@@ -43,7 +93,9 @@ def resolve(reports, source_order):
         for choice in sources.values()
         if choice["report"]
     }
-    conflict = len(values) > 1 or any(c["ambiguous"] for c in sources.values())
+    conflict = len(values) > 1 or any(
+        c["ambiguous"] or c.get("revision_disagreement", False) for c in sources.values()
+    )
     return {
         "sources": sources,
         "selected": selected,
@@ -91,7 +143,8 @@ def daily(airport, date, reports, policy, now):
         cursor += timedelta(minutes=1)
     rows = []
     for timestamp in sorted(expected | set(groups)):
-        result = resolve(groups.get(timestamp, []), policy["source_order"])
+        result = resolve(groups.get(timestamp, []), policy["source_order"],
+                         revision_order=policy.get("revision_order"))
         if parse_time(timestamp) > now and not result["selected"]:
             result["status"] = "pending"
         rows.append(
@@ -133,10 +186,22 @@ def daily(airport, date, reports, policy, now):
         if now < end
         else "provisional",
     }
-    return {
+    if policy.get("revision_order") == "source_receipt_time":
+        # Disagreements are diagnostic. Only unresolved selection/coverage affects
+        # availability; there is no human-review gate or automatic finalization.
+        blocked = sum(r["status"] == "blocked" for r in rows)
+        summary["blocked"] = blocked
+        summary["status"] = (
+            "unresolved" if blocked else "incomplete" if missing
+            else "day_in_progress" if now < end else "provisional"
+        )
+    result = {
         "airport": airport,
         "date": date,
         "rows": rows,
         "summary": summary,
         "excluded": [r for r in in_day if not r["eligible"]],
     }
+    if policy.get("revision_order") == "source_receipt_time":
+        result["policy_version"] = policy["version"]
+    return result

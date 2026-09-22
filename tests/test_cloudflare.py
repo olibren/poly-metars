@@ -194,6 +194,36 @@ class CloudflareTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.worker.statement("SELECT COUNT(*) AS n FROM receipts").first("n"), 2)
         self.assertEqual(await self.worker.statement("SELECT payload FROM reports").first("payload"), before)
 
+    async def test_source_receipt_order_survives_late_recovery_and_offline_replay(self):
+        newer = json.loads(self.body)[0]
+        newer["receiptTime"] = "2026-09-22T12:55:00.200Z"
+        self.body = json.dumps([newer]).encode()
+        await self.worker.perform(self.task["id"])
+        await self.worker.publish(self.now)
+        before = await self.worker.env.ARCHIVE.get("index.json")
+        old_revision = json.loads(await before.text())["revisions"]["2026-09-22/EGLC"]
+        old_day = self.worker.env.ARCHIVE.objects[f"revisions/{old_revision}/day.json"].body
+        # An earlier provider version arrives through recovery after publication.
+        older = {**newer, "receiptTime": "2026-09-22T12:55:00.100Z",
+                 "rawOb": newer["rawOb"].replace("23/12", "24/12")}
+        self.now += timedelta(minutes=2)
+        self.body = json.dumps([older]).encode()
+        await self.worker.perform(self.task["id"])
+        await self.worker.publish(self.now)
+        result = await self.verify_published_day()
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["reports"], 2)
+        index = json.loads(await (await self.worker.env.ARCHIVE.get("index.json")).text())
+        revision = index["revisions"]["2026-09-22/EGLC"]
+        day = json.loads(self.worker.env.ARCHIVE.objects[f"revisions/{revision}/day.json"].body)
+        row = next(r for r in day["rows"] if r["observed_at"] == "2026-09-22T12:50:00Z")
+        self.assertEqual(row["selected"]["temperature_c"], 23)
+        self.assertEqual(row["selected"]["source_received_at"], "2026-09-22T12:55:00.200000Z")
+        self.assertTrue(row["conflict"])
+        self.assertEqual(day["summary"]["blocked"], 0)
+        self.assertNotEqual(day["summary"]["status"], "review_required")
+        self.assertEqual(self.worker.env.ARCHIVE.objects[f"revisions/{old_revision}/day.json"].body, old_day)
+
     async def test_partial_publication_is_not_advertised_and_can_resume(self):
         await self.worker.perform(self.task["id"])
         self.worker.env.ARCHIVE.fail_key = "day.json"
