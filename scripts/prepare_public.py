@@ -45,6 +45,7 @@ files = [
 for directory, pattern in (
     ("ledger", "*.py"),
     ("tests", "*.py"),
+    ("tests", "*.mjs"),
     ("scripts", "*.py"),
     ("docs", "*.md"),
     ("config", "*.json"),

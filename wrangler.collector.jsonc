@@ -29,7 +29,7 @@
       { "queue": "poly-metars-live", "max_batch_size": 1, "max_batch_timeout": 1,
         "max_concurrency": 16, "max_retries": 5, "retry_delay": 30 },
       { "queue": "poly-metars-recovery", "max_batch_size": 1, "max_batch_timeout": 1,
-        "max_concurrency": 2, "max_retries": 5, "retry_delay": 60 }
+        "max_concurrency": 12, "max_retries": 5, "retry_delay": 60 }
     ]
   }
 }

@@ -29,9 +29,20 @@ make an unsupported latest-version claim pass replay.
 Cloudflare stores raw evidence once and shares it across revisions. This avoids
 copying large global bulletins into thousands of overlapping ZIP files. The
 downloaded directory is the complete portable audit bundle; zip it if desired.
+Download it before the retention window expires: the service keeps the last 30
+days and complete local boundary days, with buffered archive cleanup. Older public
+revision and evidence URLs are not permanent. A downloaded bundle remains usable
+offline after the public copy expires.
 
 Hashes detect alterations relative to the manifest. They are not government
 signatures, proof that nothing was omitted, or independent proof of collection
 time. The government agencies publish the observations; the operator controls
-collection and publication. All results remain provisional under the current
-policy. Archived revisions are never silently rewritten by the application.
+collection and publication. V3 locked results pin a strict midnight cutoff; legacy historical results retain
+their original provisional policy. Archived revisions are never silently rewritten by the application.
+
+V3 locked manifests use `poly-metars-day-v2`: the revision hash also pins
+`finalization.cutoff_at` and the per-report database `accepted_at` map. Replay
+rejects acceptance at or after cutoff, retrieval after cutoff, or acceptance before
+retrieval. The selected extrema still use the same source hierarchy and rounding.
+Acceptance metadata is operator-recorded provenance, not an independent signed
+attestation or proof that every upstream observation was collected.

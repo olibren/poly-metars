@@ -1,5 +1,5 @@
 {
-  "version": "routine-metar-v3",
+  "version": "routine-metar-v2",
   "source_order": [
     "noaa_awc",
     "noaa_tgftp",
@@ -14,7 +14,7 @@
   "corrections": "Highest explicit correction rank within each source, then its latest supported per-report receipt time. Preserve all versions. Never use local fetch order or file modification time.",
   "cross_source_conflicts": "Select by source order and display the disagreement; a selected reading does not require human review.",
   "delivery_grace_minutes": 15,
-  "finalization": "Automatically lock at the next airport-local midnight using reports durably accepted before that cutoff. Gaps and excluded ambiguous observations are diagnostic only; resolve from the selected readings without review or adjudication. No selected readings means no numeric result. Later reports and corrections cannot change a locked day.",
+  "finalization": "No automatic finalization or settlement cutoff. Selected daily extremes remain provisional; unresolved selection and missing coverage are reported automatically.",
   "unknown_classification": "Exclude, retain and explain. Never infer routine status from a scheduled minute.",
   "revision_order": "source_receipt_time",
   "source_timing": {
@@ -22,6 +22,5 @@
     "noaa_tgftp": null,
     "eccc": null
   },
-  "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version.",
-  "lock_mode": "local_midnight"
+  "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version."
 }

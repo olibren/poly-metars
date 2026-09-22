@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { resolutionUrl, resolveSelection } from '@/lib/resolution-url';
 import {
   Table,
   TableHeader,
@@ -75,6 +76,9 @@ type Day = {
   excluded: Report[];
   policy_sha256: string;
   policy_version?: string;
+  cutoff_at?: string;
+  source_order?: string[];
+  finalization?: { cutoff_at: string; accepted_at: Record<string, number> } | null;
 };
 type Index = {
   mode?: string;
@@ -122,9 +126,10 @@ const sourceTemperature = (value: number | null | undefined, unit = 'C') => {
 };
 export default function Home() {
   const [index, setIndex] = useState<Index | null>(null);
-  const [icao, setIcao] = useState('ZSQD');
+  const [icao, setIcao] = useState('');
   const [date, setDate] = useState('');
-  const [day, setDay] = useState<Day | null>(null);
+  const [loaded, setLoaded] = useState<{ day: Day; url: string } | null>(null);
+  const [routeError, setRouteError] = useState('');
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [method, setMethod] = useState(false);
@@ -146,17 +151,6 @@ export default function Home() {
         const data = (await response.json()) as Index;
         if (!active) return;
         setIndex(data);
-        setDate(
-          (current) =>
-            current ||
-            new Intl.DateTimeFormat('en-CA', {
-              timeZone:
-                data.airports.find((a) => a.icao === 'ZSQD')?.timezone || 'UTC',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            }).format(new Date()),
-        );
         setRefreshError('');
       } catch (error) {
         if (active && error instanceof Error && error.name !== 'AbortError')
@@ -167,7 +161,7 @@ export default function Home() {
     const poll = setInterval(() => {
       void refresh();
     }, 15000);
-    const clock = setInterval(() => setNow(Date.now()), 15000);
+    const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => {
       active = false;
       controller.abort();
@@ -175,6 +169,40 @@ export default function Home() {
       clearInterval(clock);
     };
   }, []);
+  useEffect(() => {
+    if (!index) return;
+    function readUrl() {
+      try {
+        const selected = resolveSelection(window.location.search, index!.airports);
+        setIcao(selected.icao);
+        setDate(selected.date);
+        setRouteError('');
+        // Pin the initial local day, so a saved URL never rolls over at midnight.
+        window.history.replaceState(null, '', resolutionUrl(selected.icao, selected.date) + window.location.hash);
+      } catch (error) {
+        setRouteError(error instanceof Error ? error.message : 'Invalid page URL.');
+        setIcao('');
+        setDate('');
+      }
+    }
+    readUrl();
+    function onPopState() {
+      setError('');
+      setExpanded(null);
+      readUrl();
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [index]);
+  function navigate(nextIcao: string, nextDate: string) {
+    window.history.pushState(null, '', resolutionUrl(nextIcao, nextDate));
+    setIcao(nextIcao);
+    setDate(nextDate);
+    setLoaded(null);
+    setError('');
+    setRouteError('');
+    setExpanded(null);
+  }
   const revision = index?.revisions?.[`${date}/${icao}`];
   const dayUrl =
     index?.mode === 'live'
@@ -183,7 +211,7 @@ export default function Home() {
         : ''
       : `${index?.base_path || '/data'}/days/${date}/${icao}.json`;
   useEffect(() => {
-    if (!date || !icao || !dayUrl) return;
+    if (!date || !icao || !dayUrl || routeError) return;
     const controller = new AbortController();
     fetch(dayUrl, { signal: controller.signal })
       .then((r) => {
@@ -194,25 +222,41 @@ export default function Home() {
         return r.json() as Promise<Day>;
       })
       .then((data) => {
-        setDay(data);
+        if (controller.signal.aborted) return;
+        if (data.airport.icao !== icao || data.date !== date)
+          throw Error('Published data does not match this airport and date.');
+        setLoaded({ day: data, url: dayUrl });
         setError('');
       })
       .catch((e) => {
         if (e.name !== 'AbortError') setError(e.message);
       });
     return () => controller.abort();
-  }, [icao, date, dayUrl]);
+  }, [icao, date, dayUrl, routeError]);
+  const day = !routeError && loaded?.url === dayUrl &&
+    loaded.day.airport.icao === icao && loaded.day.date === date ? loaded.day : null;
+  const unavailable = index?.mode === 'live' && icao && date && !revision;
+  const pageError = routeError || error || (unavailable
+    ? `No published observations for ${icao} on ${date}. This date may be outside the retained history or not yet collected.`
+    : '');
+  useEffect(() => {
+    if (icao && date) document.title = `${icao} · ${date} — Poly METARs`;
+    else document.title = 'Poly METARs — daily airport temperatures';
+  }, [icao, date]);
+  const locked = day?.summary.status === 'locked';
+  const finalizing = !!day?.cutoff_at && !locked && now >= Date.parse(day.cutoff_at);
+  const dayStatus = locked ? 'Locked' : finalizing ? 'Finalizing' : day?.cutoff_at ? 'Live' : 'Historical';
   const displayRows =
     day?.rows.map((row) => ({
       ...row,
       status:
-        !row.selected && row.status !== 'blocked'
+        !locked && !row.selected && row.status !== 'blocked'
           ? new Date(row.observed_at).getTime() > now
             ? 'pending'
             : 'missing'
           : row.status,
     })) || [];
-  const missingNow = displayRows.filter(
+  const missingNow = locked ? day.summary.missing : displayRows.filter(
     (row) =>
       row.expected &&
       !row.selected &&
@@ -245,8 +289,10 @@ export default function Home() {
     ? `/data/revisions/${revision}`
     : index?.base_path || '/data';
   const dataRoot = index?.base_path || '/data';
-  const airport = index?.airports.find((a) => a.icao === icao);
-  const sources = index?.sources || [];
+  const airport = day?.airport || index?.airports.find((a) => a.icao === icao);
+  const sources = day?.source_order
+    ? day.source_order.map((id) => index?.sources.find((s) => s.id === id) || { id, label: id, agency: '' })
+    : index?.sources || [];
   return (
     <main>
       <header className="masthead">
@@ -266,21 +312,20 @@ export default function Home() {
         <div className="intro">
           <div>
             <div className="eyebrow">
-              GOVERNMENT WEATHER REPORTS · ONE AUDITABLE RECORD
+              DAILY AIRPORT TEMPERATURES
             </div>
-            <h1>Every reading. Every source.</h1>
+            <h1>{airport ? `${airport.city} · ${icao}` : 'Airport observations'}</h1>
             <p>
-              Compare routine METARs and see exactly which reading the published
-              hierarchy selects.
+              {date ? `${date} · ${airport?.timezone || 'Local time'} · °${airport?.unit || 'C'}` : 'Select an airport and local date to view its readings.'}
             </p>
           </div>
           <span className="review-badge">PROPOSED RESOLUTION SOURCE</span>
         </div>
         <div className="notice">
           This is a review candidate, not an adopted Polymarket resolution
-          source. Daily extremes remain provisional.
+          source. Daily results use the best available selected readings.
         </div>
-        <section
+        {!locked && <section
           className={`freshness ${stale ? 'freshness-stale' : ''}`}
           aria-live="polite"
         >
@@ -289,11 +334,11 @@ export default function Home() {
               ? 'Connecting to collector…'
               : stale
                 ? 'Data freshness needs attention'
-                : 'Collector active'}
+                : 'Observations up to date'}
           </b>
           <span>
             {index
-              ? `Published ${publicationAge}s ago · Checks target every 60s · Page refreshes every 15s`
+              ? `Updated ${publicationAge}s ago`
               : 'Loading the latest government observations.'}
           </span>
           {staleSources.length > 0 && (
@@ -308,7 +353,7 @@ export default function Home() {
             </span>
           )}
           {(refreshError || error) && <span>{refreshError || error}</span>}
-        </section>
+        </section>}
         <section className="toolbar" aria-label="Observation controls">
           <div className="control">
             <label htmlFor="airport-select" id="airport-label">
@@ -318,10 +363,8 @@ export default function Home() {
               value={icao}
               onValueChange={(v) => {
                 if (v) {
-                  setIcao(v);
-                  setDay(null);
-                  setError('');
-                  setExpanded(null);
+                  const nextDate = date || resolveSelection(`?airport=${v}`, index?.airports || []).date;
+                  navigate(v, nextDate);
                 }
               }}
               items={
@@ -355,10 +398,7 @@ export default function Home() {
               value={date}
               onValueChange={(v) => {
                 if (v) {
-                  setDate(v);
-                  setDay(null);
-                  setError('');
-                  setExpanded(null);
+                  if (icao) navigate(icao, v);
                 }
               }}
             >
@@ -370,7 +410,7 @@ export default function Home() {
                 <SelectValue placeholder="Select date" />
               </SelectTrigger>
               <SelectContent>
-                {index?.dates.map((d) => (
+                {[...new Set([date, ...(index?.dates || [])])].filter(Boolean).sort().reverse().map((d) => (
                   <SelectItem key={d} value={d}>
                     {d}
                   </SelectItem>
@@ -385,7 +425,7 @@ export default function Home() {
               {airport?.timezone} · Market unit °{airport?.unit}
             </span>
           </div>
-          {date && (
+          {day && (
             <a
               className="download"
               href={
@@ -399,25 +439,21 @@ export default function Home() {
             </a>
           )}
         </section>
-        <section className="hierarchy">
-          <span className="eyebrow">SOURCE PRIORITY</span>
-          <div>
-            {sources.map((s, i) => (
-              <Fragment key={s.id}>
-                {i > 0 && <span className="priority-arrow">→</span>}
-                <span>
-                  <b>{i + 1}</b> {s.label}
-                </span>
-              </Fragment>
-            ))}
+        {icao && date && (
+          <div className="day-links">
+            <a href={resolutionUrl(icao, date)}>Link to this airport &amp; day</a>
+            <a href={`https://www.weather.gov/wrh/timeseries?site=${icao.toLowerCase()}`} target="_blank" rel="noreferrer">NWS station viewer ↗</a>
           </div>
+        )}
+        <section className="hierarchy">
           <button onClick={() => setMethod(!method)} aria-expanded={method}>
             How selection works <ChevronDown size={16} />
           </button>
         </section>
         {method && (
           <section className="method">
-            <h2>A rule anyone can reproduce</h2>
+            <h2>How the reading is selected</h2>
+            <p>Source priority: {sources.map((source) => source.label).join(' → ')}.</p>
             <p>
               For each airport and observation time, use the first source in the
               published hierarchy with an eligible routine METAR. Keep every
@@ -427,7 +463,7 @@ export default function Home() {
             </p>
             <p>
               Explicit corrections supersede originals within a source.{' '}
-              {day?.policy_version === 'routine-metar-v2'
+              {day?.policy_version !== 'routine-metar-v1'
                 ? 'Within a correction rank, the latest supported per-report source receipt time wins. Equal-time or unorderable conflicts block selection; download order never breaks a tie.'
                 : 'Equally ranked, conflicting revisions from the highest available source block selection.'}{' '}
               SPECI, unclassified reports, missing temperatures
@@ -437,14 +473,17 @@ export default function Home() {
             <p>
               NOAA AWC and TGFTP are two delivery paths from one agency. ECCC is
               a second agency. No majority vote or temperature averaging is
-              used. Historical data may change when backfill or corrections
-              arrive; all stored versions remain auditable.
+              used. Days covered by the midnight policy lock automatically using
+              reports durably accepted before the next local midnight. Missing
+              slots and ambiguous observations do not delay the lock or trigger
+              review. Later corrections and backfills cannot change a locked day.
+              Earlier historical days predate the locking policy.
             </p>
             <a download href="/POLICY.md">
               Read the full policy
             </a>{' '}
-            · <a href={`${dataRoot}/policy.json`}>Machine-readable policy</a> ·{' '}
-            <a
+            {index?.mode !== 'live' && <> · <a href={`${dataRoot}/policy.json`}>Machine-readable policy</a></>} ·{' '}
+            {day && <a
               href={
                 index?.mode === 'live'
                   ? `${revisionRoot}/audit.json`
@@ -452,21 +491,34 @@ export default function Home() {
               }
             >
               Evidence manifest
-            </a>
+            </a>}
           </section>
         )}
         {day && (
           <>
+            <output className={`day-status ${locked ? 'day-locked' : ''}`}>
+              <strong>{dayStatus}</strong>
+              <span>{locked
+                ? `Cutoff: local midnight · ${day.cutoff_at} · Later reports cannot change this result.`
+                : finalizing
+                  ? 'Midnight cutoff reached. Waiting for publication of the fixed result; later reports are excluded.'
+                  : day.cutoff_at
+                    ? `Locks at the next local midnight · ${day.cutoff_at}`
+                    : 'This day predates midnight locking.'}</span>
+            </output>
+            {locked && day.summary.high == null && (
+              <p>No usable temperature readings were available at cutoff. No numeric result.</p>
+            )}
             <section className="summary" aria-label="Daily summary">
               <div>
-                <span>Observed high</span>
+                <span>Observed high · {dayStatus.toLowerCase()}</span>
                 <strong>{temperature(day.summary.high, airport?.unit)}</strong>
-                <small>From selected routine readings</small>
+                <small>Selected routine METARs · local day</small>
               </div>
               <div>
-                <span>Observed low</span>
+                <span>Observed low · {dayStatus.toLowerCase()}</span>
                 <strong>{temperature(day.summary.low, airport?.unit)}</strong>
-                <small>From selected routine readings</small>
+                <small>Selected routine METARs · local day</small>
               </div>
               <div>
                 <span>Expected slots received</span>
@@ -483,34 +535,19 @@ export default function Home() {
                 <strong className={day.summary.conflicts ? 'warning-text' : ''}>
                   {day.summary.conflicts}
                 </strong>
-                <small>
-                  Provisional ·{' '}
-                  {stale
-                    ? 'collection stale'
-                    : missingNow
-                      ? 'incomplete'
-                      : day.summary.status === 'unresolved'
-                        ? 'unresolved observations'
-                        : 'no settlement cutoff configured'}
-                </small>
+                <small>Informational · no review required</small>
               </div>
             </section>
             <div className="table-caption">
               <div>
                 <h2>
-                  {airport?.city} <span>{icao}</span>
+                  METAR observations <span>{date}</span>
                 </h2>
                 <p>
                   All routine observation times · source temperatures in{' '}
                   {airport?.unit === 'F' ? 'whole degrees °F' : '°C'}
                 </p>
-                <p>
-                  {airport?.market_urls?.slice(0, 2).map((url, i) => (
-                    <a key={url} href={url} target="_blank" rel="noreferrer">
-                      {i ? ' · ' : ''}Market rules ↗
-                    </a>
-                  ))}
-                </p>
+
               </div>
               <span className="secondary">
                 Expand a row to inspect the original reports.
@@ -584,7 +621,7 @@ export default function Home() {
                               : row.status === 'pending'
                                 ? 'Scheduled later'
                                 : row.status === 'blocked'
-                                  ? 'Selection blocked'
+                                  ? 'Ambiguous reading excluded'
                                   : 'No eligible report'}
                           </small>
                         </TableCell>
@@ -604,6 +641,8 @@ export default function Home() {
                               ? 'Disagreement'
                               : row.status === 'missing'
                                 ? 'Not captured'
+                                : row.status === 'blocked'
+                                ? 'Ambiguous versions'
                                 : row.status.replaceAll('_', ' ')}
                             <ChevronDown size={15} />
                           </button>
@@ -690,16 +729,16 @@ export default function Home() {
         {!day && (
           <div className="empty-state" aria-live="polite">
             <FileText size={28} />
-            <h2>{error || 'Loading the observation record…'}</h2>
-            {error && (
+            <h2>{pageError || refreshError || 'Loading the observation record…'}</h2>
+            {pageError && (
               <p>
-                The ledger does not substitute sample values for missing data.
+                No readings from another airport or date are substituted. Choose an airport and date above.
               </p>
             )}
           </div>
         )}
-        <section className="collection">
-          <h2>Collection record</h2>
+        {!locked && <details className="collection">
+          <summary>Collection &amp; audit details</summary>
           <p>
             Published {index?.generated_at || '—'}. Live checks and historical
             recovery run independently. Missing cells mean we have not captured
@@ -741,17 +780,17 @@ export default function Home() {
               . These reports cannot set an extreme.
             </p>
           )}
-        </section>
+        </details>}
         <footer>
-          <span>Poly METARs · {index?.policy.version || 'policy-v1'}</span>
+          <span>Poly METARs · {day?.policy_version || index?.policy.version || 'policy-v1'}</span>
           <div>
             <a download href="/POLICY.md">
               Resolution policy
             </a>
-            <a download href="/data/index.json">
-              JSON data
+            <a download href={day ? dayUrl : '/data/index.json'}>
+              {day ? 'Day JSON' : 'JSON data'}
             </a>
-            <a
+            {day && <a
               href={
                 index?.mode === 'live'
                   ? `${revisionRoot}/audit.json`
@@ -759,8 +798,8 @@ export default function Home() {
               }
             >
               Audit manifest
-            </a>
-            <a
+            </a>}
+            {day && <a
               download={index?.audit_download !== 'manifest-and-evidence'}
               href={
                 index?.audit_download === 'manifest-and-evidence'
@@ -773,7 +812,7 @@ export default function Home() {
               {index?.audit_download === 'manifest-and-evidence'
                 ? 'Download and verify evidence'
                 : 'Download audit bundle'}
-            </a>
+            </a>}
             <a href="/source.zip" download>
               Download source
             </a>

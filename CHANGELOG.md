@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-09-22 — Automatic local-midnight locking (routine-metar-v3)
+
+- Freeze each governed airport/day at its next local midnight from the best available selected observations, without incomplete/unresolved day status, review or adjudication.
+- Record database acceptance separately from retrieval and source receipt; exclude reports accepted at or after cutoff, including late archival of pre-cutoff fetches.
+- Pin complete day JSON, CSV and audit artifacts through a conditional immutable lock pointer; preserve it through backfills, corrections, retries, policy changes and index recovery.
+- Display Live, Finalizing and Locked; keep gap/conflict counts as diagnostics and never invent a temperature when no usable readings exist.
+- Add a prospective activation migration and v2 locked-manifest replay while preserving historical v1/v2 policy and evidence. Retention remains unchanged.
+- Test strict boundaries, DST, delayed publication, archival races, failures, overlapping publishers and offline replay.
+
+## 2026-09-22 — Airport and day resolution pages
+
+- Give every airport/local date a shareable `/?airport=ICAO&date=YYYY-MM-DD` URL, with selection changes, reloads and browser history keeping the same market context.
+- Pin the initial date in the airport timezone; reject unknown airports and invalid dates instead of substituting another market. Explain unavailable and expired days explicitly.
+- Lead with airport, date and provisional daily temperatures; retain the side-by-side source table and exact METAR evidence, and collapse collection details.
+- Keep day-specific downloads tied to the displayed immutable revision and remove registry example market links that were not matched to the displayed day.
+- Document the Kalshi/NWS comparison and deterministic airport/day pairing. Selection, retention and finality policy remain unchanged.
+
+## 2026-09-22 — Automatic recovery scheduling
+
+- Keep backfill inside the existing collector and two queues; a fresh deployment automatically plans the full retained window using resumable queue jobs.
+- Increase recovery concurrency from 2 to 12 with shared provider request pacing, fair bounded dispatch and atomic queue reservations.
+- Batch task planning, avoid repeated closed ECCC directory scans, and retire obsolete live reception hours while preserving current-hour checks.
+- Delay paced work without exhausting error retries; expose durable recovery counters in the public health/index data.
+- Preserve the deployed source-selection policy, government sources, raw evidence, receipt times and thirty-day retention.
+
 ## 2026-09-22 — US source temperature display
 
 - Display all source columns and selected readings for Fahrenheit markets in whole degrees Fahrenheit, converting before rounding under the existing policy.
@@ -11,6 +36,15 @@
 - Within source priority and the highest explicit correction rank, select the latest supported source receipt time; never use download order, file age or bulletin position.
 - Retain equal-time and unorderable conflicts as automatic blocked observations, including ambiguous withdrawals. Show resolved disagreements without a human-review status.
 - Preserve the v1 policy and exact old-snapshot replay; expose source receipt times in the evidence view. Finalization and settlement remain unconfigured.
+
+## 2026-09-22 — Thirty-day history and retention
+
+- Added a machine-readable 30-day retention policy, keeping complete airport local boundary days and removing expired days from the current index.
+- Extended background AWC/ECCC recovery to the retained window, with bounded durable planning, oldest-history priority and daily rechecks of older directories.
+- Avoid repeated downloads of successfully archived timestamped ECCC files; preserve source selection and actual receipt times.
+- Added bounded D1 cleanup and a reproducible 32-day R2 lifecycle configuration, including shared-evidence refresh to prevent premature audit dependency expiry.
+- Reduced immutable file caching to one day and documented that public audit URLs expire.
+- Added tests for historical planning, expiry, stale upstream copies, DST boundaries, shared evidence and uninterrupted live dispatch.
 
 ## 2026-09-22 — Cloudflare migration
 

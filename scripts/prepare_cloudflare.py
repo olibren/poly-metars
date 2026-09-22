@@ -11,7 +11,8 @@ MODULES = ("__init__.py", "metar.py", "policy.py", "evidence.py", "sources.py")
 for name in MODULES:
     shutil.copyfile(ROOT / "ledger" / name, STAGE / name)
 config = {name: json.loads((ROOT / "config" / f"{name}.json").read_text())
-          for name in ("airports", "policy", "sources")}
+          for name in ("airports", "policy", "sources", "retention")}
+config["legacy_policy"] = json.loads((ROOT / "config/policies/routine-metar-v2.json").read_text())
 files = [*(ROOT / "ledger").glob("*.py"), *(ROOT / "cloudflare/src").glob("*.py")]
 config["engine_hashes"] = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in sorted(files) if p.name != "settings.py"}

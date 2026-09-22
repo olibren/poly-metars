@@ -80,9 +80,15 @@ def verify_export(directory):
 
 def verify_live_day(root):
     manifest = json.loads((root / 'audit.json').read_text())
-    if manifest['schema'] != 'poly-metars-day-v1':
+    if manifest['schema'] not in ('poly-metars-day-v1', 'poly-metars-day-v2'):
         raise ValueError('Unknown live audit schema')
     identity = {k: manifest[k] for k in ('date', 'icao', 'report_ids', 'policy_sha256', 'registry_sha256', 'engine_sha256')}
+    if manifest['schema'] == 'poly-metars-day-v2':
+        if not isinstance(manifest.get('finalization'), dict):
+            raise ValueError('Missing midnight lock metadata')
+        identity['finalization'] = manifest['finalization']
+    elif 'finalization' in manifest:
+        raise ValueError('Unpinned midnight lock metadata')
     if digest(canonical(identity)) != manifest['revision']:
         raise ValueError('Revision identity mismatch')
     if digest(canonical(manifest['policy'])) != manifest['policy_sha256']:
@@ -94,7 +100,7 @@ def verify_live_day(root):
     if sorted(r['id'] for r in manifest['reports']) != manifest['report_ids']:
         raise ValueError('Report set mismatch')
     verify_evidence(manifest['reports'], manifest['receipts'], root / 'evidence')
-    expected = daily(manifest['airport'], manifest['date'], manifest['reports'], manifest['policy'], parse_time(manifest['generated_at']))
+    expected = daily(manifest['airport'], manifest['date'], manifest['reports'], manifest['policy'], parse_time(manifest['generated_at']), manifest.get('finalization'))
     expected.update({'generated_at': manifest['generated_at'], 'policy_sha256': manifest['policy_sha256'],
                      'registry_sha256': manifest['registry_sha256'], 'snapshot_id': manifest['revision']})
     if expected != json.loads((root / 'day.json').read_text()):

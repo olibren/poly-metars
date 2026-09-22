@@ -1,0 +1,8 @@
+{
+  "days": 30,
+  "day_boundary": "Keep complete airport local days intersecting the last 30 days, including today.",
+  "archive_expire_days": 32,
+  "evidence_refresh_hours": 12,
+  "archive_basis": "Days since upload; refresh identical shared evidence on reuse after 12 hours. The buffer protects complete local days and their audit dependencies.",
+  "backfill": "Recover available AWC and ECCC history; TGFTP recovery is limited to its rotating upstream files. Never estimate missing observations."
+}

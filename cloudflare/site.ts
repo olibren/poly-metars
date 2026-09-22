@@ -30,7 +30,7 @@ export default {
       headers.set("X-Content-Type-Options", "nosniff");
       headers.set("Cache-Control", /^(index|health)\.json$/.test(key) || key === "rejected.jsonl"
         ? "public, max-age=0, s-maxage=10, must-revalidate"
-        : "public, max-age=31536000, immutable");
+        : "public, max-age=86400, immutable");
       response = new Response(object.body, { headers });
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     }

@@ -1,4 +1,4 @@
-# Resolution policy: routine-metar-v3
+# Resolution policy: routine-metar-v2
 
 This document describes a proposed temperature resolution policy. The machine-readable
 version is `config/policy.json`. It is not the current rulebook of an existing market.
@@ -33,10 +33,9 @@ For one registered airport and exact UTC observation time:
 7. Show cross-source disagreements and competing temperatures within the highest
    correction rank, including versions superseded by source receipt time. These
    flags do not require human adjudication when a reading has been selected.
-   Rows with no determinable reading are excluded automatically from the daily
-   extrema. Gaps and conflicts remain diagnostic evidence; they do not prevent
-   automatic resolution or require human review. Governed days are `live`,
-   `finalization_pending`, or `locked`.
+   Rows with no determinable reading remain blocked automatically. Days with blocked
+   rows are `unresolved`; missing expected readings are `incomplete`. Other days are
+   `day_in_progress` or `provisional`, independently of informational disagreements.
 
 No average, majority vote, hottest-reading preference or coldest-reading preference
 is used. Multiple copies of an airport's report are not independent measurements.
@@ -81,9 +80,8 @@ was actually issued, nor do filled slots prove no additional report was missed.
 
 Continuous collection and a separate recovery queue cover the last 30 days, within
 upstream availability. AWC and ECCC offer up to 30 days; TGFTP's rotating files do
-not guarantee that history. Restarts resume bounded historical planning. Before cutoff, a newly
-obtained higher-priority report or correction may change a selection. After locking,
-late reports and corrections are retained separately and cannot change the day.
+not guarantee that history. Restarts resume bounded historical planning. A newly
+obtained higher-priority report or correction may change an earlier selection.
 Missing history remains explicitly missing; successful retrieval is not proof of
 completeness. Backfilled reports keep their actual retrieval times.
 
@@ -110,54 +108,27 @@ deletion is asynchronous, and cached copies can outlive origin deletion.
 
 Download and retain an audit bundle before expiry if it is needed for a longer
 dispute or recordkeeping period. This retention change does not change observation
-eligibility, source priority, rounding or the separate locking contract.
+eligibility, source priority, rounding or provisional status.
 
-## Midnight cutoff and automatic locking
+## Policy versions and publication boundary
 
-For days governed by v3, the cutoff is the next local midnight in the airport's
-pinned timezone: the exclusive end of the observation day. There is no grace
-period after midnight and no human review or adjudication. Resolve from the best
-available readings selected by the published hierarchy, even with missing slots
-or excluded ambiguous observations. These are diagnostics, not `incomplete` or
-`unresolved` day statuses. No selected values means a locked record with null high
-and low, never an invented temperature.
+`config/policies/routine-metar-v1.json` and `docs/policies/routine-metar-v1.md`
+retain the previous selection contract. Offline replay follows the policy embedded
+in each manifest: v1 still blocks equally ranked temperature conflicts and reproduces
+its original output, while v2 enables source receipt ordering. New timing metadata
+creates new report identities; older evidence and snapshots are not rewritten.
+Background AWC collection can add timed copies of retained legacy reports.
 
-Only reports durably archived and accepted by the database strictly before cutoff
-may enter the result. Database acceptance time is recorded separately from our
-HTTP retrieval time and the upstream source receipt time. A report observed before
-midnight but first accepted at or after midnight is excluded from the locked input
-set. A response retrieved before cutoff but archived afterward is also too late.
-Never backdate acceptance during repair or recovery.
+Each publication uses only its pinned captured inputs. This is the evidence boundary
+for the current provisional reading; no market settlement cutoff or finalization
+window has been introduced by this selection change. A future settlement policy
+must specify its cutoff and the treatment of later arrivals before adoption.
 
-The finalizer pins the report IDs, acceptance timestamps, cutoff, policy, airport
-registry, engine hashes and immutable day artifacts. An atomically created lock
-pointer selects one completed revision. Later source corrections, backfills,
-retries, index rebuilds and policy/engine changes cannot replace it. The live
-index follows that pointer throughout retention. There is no settlement submission
-integration; the locked public record is the proposed resolution source.
+## Finality and adoption
 
-The effective cutoff and actual publication time are separate. Scheduled jobs may
-run after midnight; the page says `Finalizing` until the immutable record is
-published, without admitting later reports. Completed records say `Locked`.
-Before cutoff the page says `Live`; missing slots and source differences do not
-introduce a manual gate.
-
-## Policy versions and adoption
-
-V1 and v2 policies and documents remain in `config/policies/` and `docs/policies/`.
-Their existing manifests replay without changes. A new v2 day-manifest schema pins
-v3 lock metadata in its revision identity; the verifier validates the strict
-cutoff and recomputes the result from the exact evidence.
-
-The migration records the activation time and stamps already archived reports as
-known present at migration. The first v3 publication preserves that activation in
-R2. Days ending after activation use midnight locking; days that had already ended
-retain the v2 historical policy. They are not falsely labeled as locked at their
-past midnight. Rollout to an adopted market must be publicly agreed before trading;
-this repository remains a proposed source. The current user-authorized rollout
-also covers days open at activation.
-
-Locking does not extend retention. Frozen pages and their evidence remain available
-within the existing 30-day minimum retention window, then expire rather than
-recompute. Download an audit bundle for longer recordkeeping. Application-level
-immutability does not remove the account owner's ability to alter or delete storage.
+Every daily result is **provisional**. This implementation intentionally has no automatic
+settlement submission or finalization. An adopter must agree the finality window,
+handling of outstanding gaps and disputes, and whether this routine-only observation
+universe is appropriate. Those rules must be published before trading, not chosen
+after seeing a result. New policy versions must retain previous versions and may not
+silently redefine an already published market.

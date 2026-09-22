@@ -52,27 +52,53 @@ def live_jobs(airports, now):
     for center, prefixes in centers(airports).items():
         for offset in (0, 1):
             hour = (now - timedelta(hours=offset)).replace(minute=0, second=0, microsecond=0)
-            yield job("eccc", "live", "directory", eccc_directory(center, hour), 60,
-                      hour + timedelta(hours=3), prefixes=prefixes, recent=True)
+            yield job("eccc", "live", "directory", eccc_directory(center, hour), 60 if offset == 0 else 600,
+                      hour + timedelta(hours=2), prefixes=prefixes, recent=True)
 
 
-def recovery_jobs(airports, now, since):
-    # AWC has a limited upstream window; older ECCC data remains worth requesting.
+def planning_jobs(now, days=30):
+    """Small durable planning messages; the existing recovery queue expands them."""
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    yield job("noaa_awc", "recovery", "plan", "https://aviationweather.gov/api/data/metar",
+              3600, today+timedelta(days=1), date=today.date().isoformat())
+    for offset in range(days+2):
+        start = today-timedelta(days=offset)
+        yield job("eccc", "recovery", "plan", "https://dd.weather.gc.ca/"+start.strftime("%Y%m%d")+"/",
+                  1800 if offset == 0 else 86400, start+timedelta(days=days+2),
+                  since=iso(start), until=iso(start+timedelta(days=1)))
+
+
+def retained_dates(airport, now, days=30):
+    """Full local days intersecting a rolling window, never a partial day's extrema."""
+    zone = ZoneInfo(airport["timezone"])
+    first = (now-timedelta(days=days)).astimezone(zone).date()
+    today = now.astimezone(zone).date()
+    return [(today-timedelta(days=d)).isoformat() for d in range((today-first).days+1)]
+
+
+def retention_start(airport, now, days=30):
+    return day_bounds(retained_dates(airport, now, days)[-1], airport["timezone"])[0]
+
+
+def recovery_jobs(airports, now, since, until=None, awc_offsets=None):
+    # Stable completed-day URLs; small individual station queries avoid result caps.
     for airport in airports:
         today = now.astimezone(ZoneInfo(airport["timezone"])).date()
-        for offset in range(3):
+        for offset in (awc_offsets if awc_offsets is not None else range(31)):
             date = (today - timedelta(days=offset)).isoformat()
             start, end = day_bounds(date, airport["timezone"])
-            query = urlencode({"ids": airport["icao"], "format": "json", "date": iso(min(end, now)),
+            anchor = min(end, now.replace(minute=0, second=0, microsecond=0))
+            query = urlencode({"ids": airport["icao"], "format": "json", "date": iso(anchor),
                                "hours": int((end-start).total_seconds()/3600)})
             yield job("noaa_awc", "recovery", "report", "https://aviationweather.gov/api/data/metar?"+query,
-                      900, now+timedelta(hours=1))
+                      900 if offset < 3 else 86400,
+                      now+timedelta(hours=1) if offset == 0 else end+timedelta(days=30))
     yield job("noaa_tgftp", "recovery", "collective-directory", TGFTP_HISTORY, 300, now+timedelta(hours=1))
     for center, prefixes in centers(airports).items():
-        hour = now.replace(minute=0, second=0, microsecond=0)
+        hour = min(now, until-timedelta(hours=1) if until else now).replace(minute=0, second=0, microsecond=0)
         while hour >= since:
             yield job("eccc", "recovery", "directory", eccc_directory(center, hour),
-                      1800 if now-hour < timedelta(hours=6) else 21600,
+                      1800 if now-hour < timedelta(hours=6) else (21600 if now-hour < timedelta(days=3) else 86400),
                       hour+timedelta(days=31), prefixes=prefixes, recent=False)
             hour -= timedelta(hours=1)
 

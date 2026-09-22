@@ -68,7 +68,7 @@ a:focus-visible {
   outline-offset: 4px;
 }
 .masthead {
-  height: 78px;
+  height: 64px;
   background: #132d40;
   color: #fff;
   display: flex;
@@ -107,7 +107,7 @@ a:focus-visible {
 .page {
   max-width: 1480px;
   margin: auto;
-  padding: 36px 4% 18px;
+  padding: 24px 4% 18px;
 }
 .intro {
   display: flex;
@@ -151,8 +151,8 @@ h4 {
   white-space: nowrap;
 }
 .notice {
-  margin-top: 24px;
-  padding: 11px 15px;
+  margin-top: 16px;
+  padding: 8px 12px;
   background: #e9eef4;
   border-left: 3px solid #708899;
   font-size: 14px;
@@ -162,7 +162,7 @@ h4 {
   display: flex;
   align-items: end;
   gap: 22px;
-  padding: 25px 0;
+  padding: 20px 0 12px;
 }
 .control label {
   display: block;
@@ -204,9 +204,7 @@ h4 {
   display: flex;
   align-items: center;
   gap: 22px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 15px 0;
+  padding: 8px 0;
   font-size: 14px;
   flex-wrap: wrap;
 }
@@ -256,10 +254,10 @@ h4 {
   grid-template-columns: repeat(4, 1fr);
   background: #fff;
   border: 1px solid var(--border);
-  margin: 24px 0 28px;
+  margin: 12px 0 22px;
 }
 .summary > div {
-  padding: 19px 22px;
+  padding: 14px 20px;
   border-right: 1px solid var(--border);
 }
 .summary > div:last-child {
@@ -324,11 +322,11 @@ h4 {
   overflow: hidden;
 }
 .ledger-table table {
-  min-width: 970px;
+  min-width: 760px;
   font-size: 15px;
 }
 .ledger-table th {
-  height: 77px;
+  height: 66px;
   padding: 16px;
   font-size: 14px;
   background: #eaf0f4;
@@ -568,8 +566,8 @@ footer > div {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 20px;
-  padding: 14px 18px;
+  margin-top: 12px;
+  padding: 8px 12px;
   border-left: 4px solid #006e78;
   background: #e1f0ed;
   font-size: 14px;
@@ -581,4 +579,48 @@ footer > div {
   border-color: #a45318;
   background: #fff0de;
   color: #763b12;
+}
+
+.day-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.collection > summary {
+  cursor: pointer;
+  color: #294658;
+  font-size: 16px;
+  font-weight: 600;
+}
+.freshness:not(.freshness-stale) {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--muted-foreground);
+}
+.freshness:not(.freshness-stale) b {
+  font-size: 14px;
+  color: var(--primary);
+}
+
+.day-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.day-status strong {
+  color: var(--primary);
+}
+.day-locked {
+  padding: 12px 16px;
+  border: 1px solid #c6e1da;
+  background: #e8f4f1;
 }

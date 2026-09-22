@@ -11,7 +11,8 @@ The collector has no public URL and its HTTP handler always returns 404. There i
 no observation upload, correction, manual temperature override, or public trigger.
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
-publicly documented process. All current daily results are provisional.
+publicly documented process. V3 days lock automatically at the next local midnight;
+pre-activation history remains under v2.
 
 ## Install and deploy to a new account
 
@@ -39,6 +40,8 @@ make check build
 npm run cf:dry-run
 # Replay a real downloaded day as described in AUDIT.md before publishing changes.
 npm run cf:deploy
+# After deploying the collector's shared-evidence refresh, apply the R2 policy:
+python3 scripts/configure_retention.py
 ```
 
 Deploy from a clean, reviewed commit. The command deploys both Workers, their queue
@@ -69,22 +72,63 @@ curl 'http://localhost:8792/cdn-cgi/local/scheduled?format=json'
 
 Both processes share the local R2 state. Local testing fetches real public sources,
 but writes only to local storage. Visit localhost:8793. The old `ledger.http` process
-on port 8001 remains an alternative for frontend development with `npm run dev`.
+on port 8001 may serve existing historical fixtures for frontend development. The
+legacy local publisher rejects the v3 locking policy; use the Cloudflare runtime
+for current collection and locking.
 
 ## Collection, failure and publication
 
 The planner defines every source URL, interval, overlap and expiry in one small
-module. Live and recovery queues have separate consumer concurrency (16 and 2).
+module. Live and recovery queues have separate consumer concurrency (16 and 12).
 Each message performs one bounded government HTTP fetch, with a 20-second timeout
 and 8 MB response limit. Only allowlisted HTTPS hosts are accepted; redirects are
 recorded and rejected. ECCC has a documented alternative HTTPS hostname, treated
 as the same source. Missing reception directories are recorded as 404/no data.
 
 D1 contains due times, queue reservations and execution leases. Queue deliveries
-are idempotent. Reservations expire after 120 seconds and leases after 180 seconds;
-due work is redispatched by cron even after queue retries are exhausted. Recovery
-prioritizes the rotating TGFTP listing, AWC and discovered files before large ECCC
-historical directory scans. Initial recovery can take hours while live work continues.
+are idempotent. Messages carry their reservation so stale deliveries are ignored.
+Claims are atomic, reservations last 15 minutes and execution leases
+last 180 seconds. A failed send releases its reservation; lost messages and exhausted
+error retries recover automatically through cron. Outstanding recovery messages are
+bounded separately for planning, AWC, TGFTP, ECCC directories and ECCC files. Large
+backlogs in one class cannot monopolize dispatch. Unchecked, earliest-expiring work
+comes first within each class; TGFTP's rotating listing precedes its files.
+
+A new account automatically starts the full retained-window backfill on its first
+cron. Small durable planning jobs run in the same recovery queue, expanding one UTC
+day of ECCC directories per job and all airport/local-day AWC queries in another.
+Planning normally completes within several minutes, independently of the longer
+retrieval pass. Failed planning can safely repeat without duplicating tasks. No
+bootstrap command, separate importer, developer machine, additional service, schema
+migration or government API credential is required. Old recovery cursors are ignored.
+Task inserts are batched below D1's statement binding limit.
+
+Request clocks in D1 pace both queues, retries and alternate hosts together: at least
+1 second between AWC request slots, 1.1 seconds for ECCC and 0.25 seconds for TGFTP.
+These are shared clocks, not independent per-consumer sleeps. Live work has priority
+access to future slots; recovery waits only briefly and otherwise sends a delayed
+replacement message. Normal pacing does not consume the queue's error retry budget.
+Changing consumer concurrency does not multiply the provider request rate.
+
+ECCC's current reception hour is checked every minute. The previous hour is checked
+every ten minutes for late files, and older hours leave the live queue. Recovery
+revisits recent reception directories; after three days a successful complete listing
+finishes that directory. This is a reception-time boundary, not an observation-time
+boundary: newly received corrections still arrive through current reception hours.
+Timestamped bulletin files are fetched once successfully. Failed listings/files retry;
+a 404 directory is recorded as a successful no-data check, not proof of completeness.
+AWC rechecks recent local days every 15 minutes and older days daily. TGFTP recovery
+covers its available rotating files only; it cannot reconstruct overwritten history.
+The original report receipt time is never replaced by a backfill's retrieval time.
+
+The `recovery` arrays in `/data/index.json` and `/data/health.json` expose each source
+and task kind's task count, unchecked count, rechecks due, outstanding messages,
+errors and latest successful check (Unix seconds). Planning tasks must finish before
+the task counts describe the entire window; file discovery can increase the counts.
+These are processing counters, not a completeness percentage. Airport-day missing
+slots and evidence remain the coverage record. All three sources may share upstream
+observations; the deployment is independently operable by its owner but depends on
+Cloudflare and government availability.
 
 Raw bytes and their receipt are written to R2 before a normalized D1 insert. Distinct
 reports have deterministic identities and keep their original receipt time. Pending
@@ -104,19 +148,35 @@ without altering the original row or receipt. Live, recovery and offline replay
 use the same decoder. No database migration is required. TGFTP/ECCC file dates
 are not used to order individual report versions. Missing or invalid timing stays
 unordered, and unresolved selection is reported automatically without a manual
-review workflow. This change does not configure market finality.
+review workflow. V3 adds the midnight boundary described below.
 
-R2 retains evidence, receipts, reports, rejected records and revisions without an
-application deletion path. D1 retains 90 days of reports and their referenced
-receipts, 3 days of unreferenced receipts, and bounded expired task history.
-Its pruning does not remove published R2 history. Account owners can
-still alter/delete R2 data: application immutability is not an administrator lock.
+`config/retention.json` is the storage policy. D1 and the current index keep complete
+airport local days intersecting the last 30 days. Bounded pruning runs after
+publication; referenced receipts survive for as long as their retained reports.
+Unreferenced receipts and rejected records are pruned after 30 days. Old content
+returned by an upstream cannot reintroduce an expired observation day.
+
+The dedicated `poly-metars` R2 bucket expires objects 32 days after upload, including
+legacy migration snapshots. This small buffer protects complete local days. Shared
+raw bodies reused after 12 hours are refreshed with identical bytes, keeping their
+hashes and original receipt times intact. Newly backfilled evidence may consequently
+remain longer than 30 days from observation time. Lifecycle deletion is asynchronous
+(normally within a day of expiration); this is a minimum retention window, not an
+exact erasure deadline. Account owners can still alter/delete R2 data.
+
+`scripts/configure_retention.py` reads the policy and the dedicated bucket name in
+`deploy/cloudflare.json`; update that deployment file when handing over accounts.
+It replaces the bucket lifecycle rules and preserves seven-day incomplete-upload
+cleanup. Always deploy the collector's evidence refresh before applying these rules.
+Review with `npx wrangler r2 bucket lifecycle list poly-metars --config wrangler.collector.jsonc`.
+Do not put unrelated data in this bucket. Download audit bundles before expiry if
+they are needed for longer disputes or external records.
 
 ## Read traffic and costs
 
 HTML, JavaScript and CSS are static assets. Only `/data/*` invokes the small file
 server. It never queries the database or contacts a government source. Immutable
-files cache for a year; the current index caches at the edge for 10 seconds. Query
+files cache for a day; the current index caches at the edge for 10 seconds. Query
 strings and client cache-busting headers do not create extra cache keys. Visitors
 cannot change collection work. Unknown paths are rejected before accessing storage.
 
@@ -183,3 +243,37 @@ The owner should separately export the bucket for protection from account loss.
 The prior EC2/Vercel deployment is documented in [LEGACY_AWS.md](LEGACY_AWS.md) solely
 for rollback and historical evidence recovery. Its public revisions and off-host
 backups must be preserved during cutover. It is not part of the Cloudflare runtime.
+
+## Midnight-lock rollout and recovery
+
+Apply `0003_midnight_lock.sql` before deploying the v3 collector. It adds durable
+acceptance timestamps and a one-time activation boundary; existing archived rows
+are stamped as known present now, never at an invented historical cutoff. A bounded
+repair stamps rows archived by an overlapping old deployment. Deploy the collector
+and frontend together after `make check build`, a Cloudflare dry run and offline
+replay. No remote deployment or migration occurs merely by building locally.
+
+The finalizer runs in the existing scheduled collector. It admits only reports
+accepted strictly before the airport's next local midnight, then conditionally
+creates `locks/YYYY-MM-DD/ICAO.json` after its revision artifacts exist. The index's
+`locks` map preserves these pointers. Finalization retries recover incomplete
+writes, including a crash after lock creation but before index publication. An
+outage does not extend the cutoff; retained unfinalized days are revisited even
+when no reports have marked them dirty. At most two unindexed closing days per
+airport are processed per tick, newest first; remaining dirty work is retained.
+Completed days avoid repeated evidence
+queries. Post-cutoff collection may preserve late evidence but never changes a lock.
+
+`locking.json` preserves deployment activation alongside the D1 state. During D1
+recovery, preserve the original R2 bucket, lock pointers, activation and revisions.
+Restoring SQL evidence alone is not a restoration of resolution locks. Never delete
+or recreate lock pointers to force a new result. If the R2 archive is also lost,
+restore its lock records and dependencies from an owner backup before resuming
+publication; the evidence-only SQL utility cannot reconstruct lock provenance.
+
+The cutoff is exact but scheduled execution/publication is asynchronous. The UI
+shows Finalizing until the final record is available. Check after each local
+midnight that expected airport/day keys enter `index.locks`; alert on prolonged
+pending publication independently of collection health. Locked pages keep stable
+coverage diagnostics and do not inherit current live-source freshness warnings.
+The 30-day retention window and buffered R2 expiry still apply to locked records.

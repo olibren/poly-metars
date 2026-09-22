@@ -27,7 +27,7 @@ def restore_sql(directories):
         if not result.get("verified"):
             raise ValueError("Bundle verification failed")
         manifest = json.loads((directory / "audit.json").read_text())
-        if manifest.get("schema") != "poly-metars-day-v1":
+        if manifest.get("schema") not in ("poly-metars-day-v1", "poly-metars-day-v2"):
             raise ValueError("Supply an immutable airport-day bundle")
         for receipt in manifest["receipts"]:
             old = receipts.setdefault(receipt["id"], receipt)

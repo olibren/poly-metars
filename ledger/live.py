@@ -115,6 +115,8 @@ def publish(store, config, output, now=None):
     output, config = Path(output), Path(config)
     airports = json.loads((config / 'airports.json').read_text())
     policy = json.loads((config / 'policy.json').read_text())
+    if policy.get('lock_mode'):
+        raise ValueError('Midnight locking requires the Cloudflare collector; use an explicit legacy policy for local historical preview.')
     sources = json.loads((config / 'sources.json').read_text())
     dates = recent_dates(airports)
     records = store.records_since(iso(now - timedelta(days=5)))

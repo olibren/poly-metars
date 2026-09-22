@@ -1,5 +1,6 @@
 .PHONY: test check build collect verify
 test:
+	node --experimental-strip-types --test tests/*.test.mjs
 	python3 -m unittest discover -s tests -v
 check: test
 	npm run check

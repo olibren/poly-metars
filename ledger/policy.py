@@ -124,8 +124,20 @@ def day_bounds(day, timezone):
     return local.astimezone(UTC), (local + timedelta(days=1)).astimezone(UTC)
 
 
-def daily(airport, date, reports, policy, now):
+def daily(airport, date, reports, policy, now, finalization=None):
     start, end = day_bounds(date, airport["timezone"])
+    if finalization is not None:
+        if policy.get("lock_mode") != "local_midnight" or finalization.get("cutoff_at") != iso(end) or now < end:
+            raise ValueError("Invalid midnight lock")
+        accepted = finalization.get("accepted_at", {})
+        if set(accepted) != {r["id"] for r in reports}:
+            raise ValueError("Lock acceptance set mismatch")
+        for report in reports:
+            stamp = accepted[report["id"]]
+            if (not isinstance(stamp, int) or isinstance(stamp, bool) or stamp >= end.timestamp()
+                    or parse_time(report["fetched_at"]) >= end
+                    or stamp < int(parse_time(report["fetched_at"]).timestamp())):
+                raise ValueError("Report not durably accepted before midnight")
     in_day = [
         r
         for r in reports
@@ -204,4 +216,12 @@ def daily(airport, date, reports, policy, now):
     }
     if policy.get("revision_order") == "source_receipt_time":
         result["policy_version"] = policy["version"]
+    if policy.get("lock_mode") == "local_midnight":
+        # Coverage/conflicts remain in the evidence, never a human-review gate.
+        summary["status"] = "locked" if finalization is not None else "finalization_pending" if now >= end else "live"
+        if finalization is not None:
+            summary["missing"] = sum(r["expected"] and not r["selected"] for r in rows)
+        result["source_order"] = policy["source_order"]
+        result["cutoff_at"] = iso(end)
+        result["finalization"] = finalization
     return result

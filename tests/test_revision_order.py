@@ -17,7 +17,7 @@ from ledger.policy import daily, resolve
 from ledger.sources import collect_awc, collect_awc_recent
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = json.loads((ROOT / "config/policy.json").read_text())
+POLICY = json.loads((ROOT / "config/policies/routine-metar-v2.json").read_text())
 ORDER = POLICY["source_order"]
 NOW = datetime(2026, 9, 22, 12, tzinfo=UTC)
 OBS = datetime(2026, 9, 20, 6, tzinfo=UTC)
