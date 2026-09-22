@@ -226,18 +226,32 @@ h4 {
   overflow: hidden;
 }
 .ledger-table table {
-  min-width: 710px;
+  min-width: 700px;
+  table-layout: fixed;
   font-size: 14px;
 }
 .ledger-table th {
-  padding: 14px 18px;
+  padding: 9px 12px;
   font-size: 12px;
   color: var(--muted-foreground);
   background: #f7f9f7;
-  height: 58px;
+  height: 40px;
 }
 .ledger-table td {
-  padding: 12px 18px;
+  padding: 6px 12px;
+  vertical-align: middle;
+}
+.time-column { width: 84px; }
+.temperature-column { width: 106px; }
+.source-column { width: 132px; }
+.expand-column { width: 48px; }
+.selected-source { font-size: 12px; }
+.metar-cell { white-space: normal; }
+.selected-metar {
+  display: block;
+  font: 12px/1.5 monospace;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .ledger-table small {
   display: block;
@@ -249,14 +263,8 @@ h4 {
 .ledger-table small:empty {
   display: none;
 }
-.ledger-table .selected-column {
-  background: #f1f8f3;
-}
-.ledger-table th.selected-column {
-  color: var(--primary);
-}
 .selected-reading {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #14653e;
 }
@@ -275,7 +283,12 @@ h4 {
   align-items: center;
   font-size: 12px;
   color: var(--muted-foreground);
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
 }
+.record-button:hover { background: var(--accent); }
 .record-button[aria-expanded='true'] svg {
   transform: rotate(180deg);
 }
@@ -300,6 +313,9 @@ h4 {
 .source-evidence:last-child {
   border: 0;
 }
+.source-hierarchy { color: var(--muted-foreground); font-size: 12px; }
+.source-evidence-heading { display: flex; align-items: center; gap: 12px; }
+.chosen-source { color: var(--primary); background: var(--accent); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
 .report {
   padding: 10px 0;
   font-size: 12px;

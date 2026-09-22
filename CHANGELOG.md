@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-22 — Compact selected-reading table
+
+- Show local time, selected temperature, selected source and full METAR text in compact rows.
+- Use a chevron to expand the original reports, source hierarchy, per-source temperatures, selected-source marker and audit links.
+- Keep long METARs readable with wrapping; retain missing/ambiguous states and existing selection and finality rules.
+
 ## 2026-09-22 — Retire unusable NWS observations source (routine-metar-v5)
 
 - Verify the NWS observation schema, JSON-LD and XML formats, station provider metadata and alternate MTR products; none provides reliable current routine-only coverage for this registry.

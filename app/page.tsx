@@ -506,22 +506,19 @@ export default function Home() {
                 </p>
               </div>
               <span className="secondary">
-                Select a row’s METARs to see the exact reports.
+                Expand a row to compare sources in priority order.
               </span>
             </div>
             <div className="ledger-table">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>
-                      Local time<small>UTC below</small>
-                    </TableHead>
-                    {sources.map((s) => (
-                      <TableHead key={s.id}>{s.label}</TableHead>
-                    ))}
-                    <TableHead className="selected-column">Selected</TableHead>
-                    <TableHead>
-                      <span className="sr-only">Original reports</span>
+                    <TableHead className="time-column">Local time</TableHead>
+                    <TableHead className="temperature-column">Temperature</TableHead>
+                    <TableHead className="source-column">Source</TableHead>
+                    <TableHead>METAR</TableHead>
+                    <TableHead className="expand-column">
+                      <span className="sr-only">Compare sources</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -530,33 +527,9 @@ export default function Home() {
                     <Fragment key={row.observed_at}>
                       <TableRow className={row.conflict ? 'conflict-row' : ''}>
                         <TableCell>
-                          <b className="time">{row.local_time}</b>
-                          <small>{row.observed_at.slice(11, 16)} UTC</small>
+                          <time className="time" dateTime={row.observed_at} title={row.observed_at}>{row.local_time}</time>
                         </TableCell>
-                        {sources.map((s) => {
-                          const v = row.sources[s.id];
-                          return (
-                            <TableCell key={s.id} title={v?.report ? undefined : `${s.label}: no eligible reading for this time`}>
-                              <span className="reading">
-                                {sourceTemperature(
-                                  v?.report?.temperature_c,
-                                  airport?.unit,
-                                  day.rounding_mode,
-                                )}
-                              </span>
-                              <small>
-                                {v?.ambiguous
-                                  ? 'Conflicting revisions'
-                                  : v?.report
-                                    ? v.report.correction
-                                      ? 'Corrected report'
-                                      : ''
-                                    : ''}
-                              </small>
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="selected-column">
+                        <TableCell>
                           <strong className="selected-reading">
                             {sourceTemperature(
                               row.selected?.temperature_c,
@@ -564,23 +537,31 @@ export default function Home() {
                               day.rounding_mode,
                             )}
                           </strong>
-                          <small>
-                            {row.selected
-                              ? sources.find(
-                                  (s) => s.id === row.selected?.source,
-                                )?.label
-                              : row.status === 'pending'
+                        </TableCell>
+                        <TableCell className="selected-source">
+                          {row.selected
+                            ? sources.find((s) => s.id === row.selected?.source)?.label || row.selected.source
+                            : '—'}
+                        </TableCell>
+                        <TableCell className="metar-cell">
+                          {row.selected ? (
+                            <code className="selected-metar">{row.selected.raw}</code>
+                          ) : (
+                            <span className="secondary">
+                              {row.status === 'pending'
                                 ? 'Scheduled later'
                                 : row.status === 'blocked'
                                   ? 'Ambiguous reading excluded'
                                   : 'No eligible report'}
-                          </small>
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <button
                             className={`record-button ${row.conflict || row.status === 'blocked' ? 'warning-text' : ''}`}
-                            aria-label={`METAR reports at ${row.local_time}: ${row.status.replaceAll('_', ' ')}`}
+                            aria-label={`Compare sources at ${row.local_time}: ${row.status.replaceAll('_', ' ')}`}
                             aria-expanded={expanded === row.observed_at}
+                            aria-controls={`evidence-${row.observed_at}`}
                             onClick={() =>
                               setExpanded(
                                 expanded === row.observed_at
@@ -589,28 +570,35 @@ export default function Home() {
                               )
                             }
                           >
-                            {row.conflict
-                              ? 'Disagreement'
-                              : row.status === 'missing'
-                                ? 'Not captured'
-                                : row.status === 'blocked'
-                                  ? 'Ambiguous versions'
-                                  : 'METARs'}
-                            <ChevronDown size={15} />
+                            <ChevronDown size={16} aria-hidden="true" />
                           </button>
                         </TableCell>
                       </TableRow>
                       {expanded === row.observed_at && (
                         <TableRow>
                           <TableCell
-                            colSpan={sources.length + 3}
+                            colSpan={5}
                             className="evidence-cell"
                           >
-                            <div className="evidence">
+                            <div className="evidence" id={`evidence-${row.observed_at}`}>
                               <h3>Original reports · {row.observed_at}</h3>
-                              {sources.map((s) => (
+                              <p className="source-hierarchy">
+                                Source priority: {sources.map((s) => s.label).join(' → ')}
+                              </p>
+                              {row.conflict && (
+                                <p className="warning-text">
+                                  {row.selected
+                                    ? 'Reports disagree. The selected reading follows the source hierarchy and correction rules.'
+                                    : 'Conflicting revisions prevent a selection at this time.'}
+                                </p>
+                              )}
+                              {sources.map((s, rank) => (
                                 <div className="source-evidence" key={s.id}>
-                                  <h4>{s.label}</h4>
+                                  <h4 className="source-evidence-heading">
+                                    <span>{rank + 1}. {s.label}</span>
+                                    <span>{sourceTemperature(row.sources[s.id]?.report?.temperature_c, airport?.unit, day.rounding_mode)}</span>
+                                    {row.selected?.source === s.id && <span className="chosen-source">Selected</span>}
+                                  </h4>
                                   {row.sources[s.id]?.variants.length ? (
                                     row.sources[s.id].variants.map((r) => (
                                       <div key={r.id} className="report">
