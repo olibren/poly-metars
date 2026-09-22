@@ -5,7 +5,8 @@ markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC**. Each row shows t
 captured sources and the selected reading. This is an independent proposal, not
 an adopted Polymarket resolution source. Results remain provisional.
 
-Site: https://poly-metars.olibren.workers.dev  
+Site: https://poly-metars.olibren.workers.dev
+
 Source: https://github.com/olibren/poly-metars
 
 ## One Cloudflare account, one repository

@@ -50,13 +50,17 @@ No developer-owned CI token is required for handover.
 The frontend is a static export; its build deliberately does not run a server-side
 Cloudflare Vite plugin. Collector and site configurations have explicit filenames
 so the framework does not mistake the collector for its own server runtime.
+`cf:sync` briefly exposes the collector configuration at the default path required
+by workers-py 1.17, then removes that temporary copy. A clean checkout is tested
+in CI, including dependency synchronization and both deployment dry runs.
 
 ## Local runtime
 
 ```sh
 npm run cf:prepare
 npx wrangler d1 migrations apply poly-metars --local --config wrangler.collector.jsonc
-uv run pywrangler dev --config wrangler.collector.jsonc --test-scheduled --port 8792
+npm run cf:sync
+npx wrangler dev --config wrangler.collector.jsonc --test-scheduled --port 8792
 # Separate terminal, after npm run build:
 npx wrangler dev --config wrangler.site.jsonc --port 8793
 # Manually trigger a local collection/publication cycle:

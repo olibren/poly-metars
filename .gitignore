@@ -51,3 +51,5 @@ __pycache__/
 /cloudflare/src/ledger/
 /cloudflare/src/settings.py
 /.dev.vars*
+# Temporary compatibility file used only while syncing Python dependencies.
+/wrangler.jsonc

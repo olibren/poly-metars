@@ -16,10 +16,11 @@
     "prepare-public": "python3 scripts/prepare_public.py",
     "prebuild": "npm run prepare-public",
     "cf:prepare": "python3 scripts/prepare_cloudflare.py",
-    "cf:dev": "npm run cf:prepare && uv run pywrangler dev --config wrangler.collector.jsonc",
+    "cf:dev": "npm run cf:prepare && npm run cf:sync && wrangler dev --config wrangler.collector.jsonc",
     "cf:types": "wrangler types cloudflare/site-env.d.ts --config wrangler.site.jsonc --env-interface SiteEnv",
-    "cf:deploy": "npm run cf:prepare && uv run pywrangler deploy --config wrangler.collector.jsonc && wrangler deploy --config wrangler.site.jsonc",
-    "cf:dry-run": "npm run cf:prepare && uv run pywrangler deploy --config wrangler.collector.jsonc --dry-run && wrangler deploy --dry-run --config wrangler.site.jsonc"
+    "cf:deploy": "npm run cf:prepare && npm run cf:sync && wrangler deploy --config wrangler.collector.jsonc && wrangler deploy --config wrangler.site.jsonc",
+    "cf:dry-run": "npm run cf:prepare && npm run cf:sync && wrangler deploy --config wrangler.collector.jsonc --dry-run && wrangler deploy --dry-run --config wrangler.site.jsonc",
+    "cf:sync": "python3 scripts/sync_cloudflare.py"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

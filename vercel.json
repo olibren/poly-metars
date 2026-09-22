@@ -1,11 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist/client",
-  "redirects": [{
-    "source": "/:path*",
-    "destination": "https://poly-metars.olibren.workers.dev/:path*",
-    "permanent": false
-  }]
+  "buildCommand": "python3 scripts/build_vercel_redirect.py",
+  "outputDirectory": ".vercel/output/static",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://poly-metars.olibren.workers.dev/:path*",
+      "permanent": false
+    }
+  ]
 }

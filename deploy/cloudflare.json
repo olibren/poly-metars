@@ -10,5 +10,7 @@
     "poly-metars-recovery"
   ],
   "github_repository": "olibren/poly-metars",
-  "legacy_state": "running during verified cutover"
+  "legacy_state": "Collector and backup timer stopped after final backup at 2026-09-22T16:58:06Z; EC2 stop requested; EBS and S3 retained for rollback.",
+  "collector_version": "9c9a3d9f-cbeb-4d8e-a42a-5245f2e9f967",
+  "site_version": "206b5610-37c0-43e7-b100-7795dbd55908"
 }

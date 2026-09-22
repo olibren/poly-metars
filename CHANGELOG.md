@@ -8,6 +8,8 @@
 - Added a read-only static site Worker with bounded edge caching; public traffic cannot trigger collection or query D1.
 - Published immutable audit manifests with shared evidence downloads, operating instructions and an ownership handover guide.
 - Added crash, duplicate-delivery, queue-loss, publication-race and recovery-priority tests.
+- Verified clean-checkout Worker packaging in CI, including the Python SDK default-config compatibility step.
+- Redirected the former Vercel address to Cloudflare and preserved legacy evidence during cutover.
 
 ## 2026-09-22 — Poly METARs live service
 
