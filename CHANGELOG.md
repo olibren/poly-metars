@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-22 — Retire unusable NWS observations source (routine-metar-v5)
+
+- Verify the NWS observation schema, JSON-LD and XML formats, station provider metadata and alternate MTR products; none provides reliable current routine-only coverage for this registry.
+- Remove NWS from active planning, source priority, health and current table columns. Expire retired tasks and discard queued deliveries without fetching; retain raw evidence and historical replay support.
+- Archive v4 policy and preserve all locks, publication triggers, rounding and cutoff rules. No schema migration or activation reset.
+- Explain missing source-cell values on hover and document why successful API requests did not supply eligible observations.
+
 ## 2026-09-22 — Next-day publication locking, NWS API and MET Norway (routine-metar-v4)
 
 - Keep revisions open after local midnight until this site first publishes an eligible selected routine METAR for the next local date, capped at 23:59:00 America/New_York on the following calendar date.

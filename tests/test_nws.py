@@ -1,11 +1,11 @@
-"""NWS evidence fidelity, bounded collection and conservative eligibility."""
+"""Retired NWS evidence fidelity, conservative eligibility and queue retirement."""
 from datetime import timedelta
 import json
 import unittest
-from urllib.parse import urlparse
+from unittest.mock import AsyncMock, patch
 
 import test_cloudflare as support
-from ledger.metar import parse_nws, parse_time
+from ledger.metar import parse_nws
 from ledger.policy import market_value, resolve
 
 
@@ -39,8 +39,15 @@ class NwsParsingTests(unittest.TestCase):
         self.assertEqual(market_value(19,'F','half_toward_positive'), 66)
 
 
-class NwsCollectionTests(unittest.IsolatedAsyncioTestCase):
-    asyncSetUp = support.CloudflareTests.asyncSetUp
+class HistoricalNwsTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        await support.CloudflareTests.asyncSetUp(self)
+        self.current_policy = self.module.SETTINGS['policy']
+        self.module.SETTINGS['policy'] = json.loads((support.ROOT/'config/policies/routine-metar-v4.json').read_text())
+        # Reproduce pre-retirement ingestion using the mocked transport. Runtime
+        # has no NWS allowlist/pacing entry; retained decoders still verify v4.
+        self.module.GOVERNMENT_HOSTS.add('api.weather.gov')
+        self.module.REQUEST_SPACING_MS['noaa_nws'] = 1000
     asyncTearDown = support.CloudflareTests.asyncTearDown
     verify_published_day = support.CloudflareTests.verify_published_day
 
@@ -67,24 +74,73 @@ class NwsCollectionTests(unittest.IsolatedAsyncioTestCase):
         # Entire original response (including the unexpected station) stays in R2.
         self.assertTrue(any(x.body == self.body for x in self.worker.env.ARCHIVE.objects.values()))
 
-    async def test_recovery_pagination_is_bounded_and_stays_on_same_station(self):
-        next_url='https://api.weather.gov/stations/EGLC/observations?cursor=opaque'
-        self.body=json.dumps({'type':'FeatureCollection','features':[feature()], 'pagination':{'next':next_url}}).encode()
-        await self.worker.collect(self.task_payload(),'recovery')
-        tasks=await self.worker.rows("SELECT payload FROM tasks WHERE source='noaa_nws'")
-        self.assertEqual(len(tasks),1)
-        self.assertEqual(json.loads(tasks[0]['payload'])['url'],next_url)
-        for url in ['https://example.com/private','https://api.weather.gov/stations/KJFK/observations?cursor=x']:
-            self.body=json.dumps({'type':'FeatureCollection','features':[], 'pagination':{'next':url}}).encode()
-            with self.assertRaises(ValueError):await self.worker.collect(self.task_payload(),'recovery')
+    async def test_existing_v4_lock_and_trigger_survive_source_retirement(self):
+        self.body=json.dumps({'type':'FeatureCollection','features':[feature()]}).encode()
+        await self.worker.collect(self.task_payload(),'live')
+        await self.worker.publish(self.now)
+        self.now = self.now.replace(hour=23,minute=22)
+        self.body=json.dumps({'type':'FeatureCollection','features':[
+            feature('METAR EGLC 222320Z 25005KT CAVOK 21/12 Q1013',timestamp='2026-09-22T23:20:00Z')]}).encode()
+        await self.worker.collect(self.task_payload(),'live')
+        self.now += timedelta(seconds=1)
+        await self.worker.publish(self.now)
+        bucket = self.worker.env.ARCHIVE
+        previous = json.loads(await (await bucket.get('index.json')).text())
+        before = previous['locks']
+        self.assertIn('2026-09-23/EGLC',previous['first_publications'])
+        self.module.SETTINGS['policy'] = self.current_policy
+        await self.worker.publish(self.now)
+        after = json.loads(await (await bucket.get('index.json')).text())
+        self.assertEqual(before, after['locks'])
+        self.assertEqual(previous['first_publications'],after['first_publications'])
+        self.assertTrue((await self.verify_published_day())['verified'])
 
-    async def test_planner_schedules_live_and_separate_six_hour_recovery(self):
+
+class NwsRetirementTests(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = support.CloudflareTests.asyncSetUp
+    asyncTearDown = support.CloudflareTests.asyncTearDown
+
+    async def old_task(self, kind='report', mode='live'):
+        task = self.module.job('noaa_nws', mode, kind,
+            'https://api.weather.gov/stations/EGLC/observations?limit=100',60,self.now+timedelta(hours=3))
+        # Seed the existing DB as it looked before the code upgrade.
+        fields=('id','source','mode','kind','payload','interval_seconds','expires_at')
+        await self.worker.statement('INSERT INTO tasks('+','.join(fields)+') VALUES(?,?,?,?,?,?,?)',
+                                    *[task[k] for k in fields]).run()
+        return task
+
+    async def test_planners_and_task_insertion_do_not_revive_nws(self):
         import planner
-        tasks=list(planner.live_jobs([self.airport],self.now))
-        self.assertEqual(len([t for t in tasks if t['source']=='noaa_nws']),1)
-        jobs=list(planner.nws_recovery_jobs([self.airport],self.now))
-        self.assertEqual(len(jobs),28)
-        from urllib.parse import parse_qs
-        for job in jobs:
-            query=parse_qs(urlparse(json.loads(job['payload'])['url']).query)
-            self.assertEqual(parse_time(query['end'][0])-parse_time(query['start'][0]),timedelta(hours=6))
+        jobs=list(planner.live_jobs([self.airport],self.now))+list(planner.planning_jobs(self.now))
+        self.assertFalse(any(t['source']=='noaa_nws' for t in jobs))
+        task=self.module.job('noaa_nws','recovery','plan','https://api.weather.gov/stations',60,self.now+timedelta(hours=3))
+        await self.worker.upsert_tasks([task])
+        self.assertIsNone(await self.worker.statement('SELECT id FROM tasks WHERE id=?',task['id']).first())
+        self.assertNotIn('noaa_nws', self.module.SETTINGS['policy']['source_order'])
+        self.assertNotIn('noaa_nws', [s['id'] for s in self.module.SETTINGS['sources']])
+
+    async def test_old_queued_reports_and_plans_are_acked_without_fetching(self):
+        for mode,kind in [('live','report'),('recovery','plan')]:
+            task=await self.old_task(kind,mode)
+            with patch.object(self.worker,'collect',new=AsyncMock()) as collect:
+                await self.worker.perform(task['id'])
+                collect.assert_not_awaited()
+            row=await self.worker.statement('SELECT * FROM tasks WHERE id=?',task['id']).first()
+            self.assertEqual(row['expires_at'],int(self.now.timestamp()))
+            self.assertEqual(row['lease_until'],0)
+            self.assertEqual(row['queued_until'],0)
+
+    async def test_cron_retirement_removes_jobs_from_dispatch_and_health_without_touching_evidence(self):
+        task=await self.old_task()
+        await self.worker.perform(self.task['id'])  # retained, active AWC evidence
+        before=await self.worker.rows('SELECT * FROM reports')
+        await self.worker.retire_inactive_tasks(self.now)
+        await self.worker.dispatch('live',300)
+        self.assertNotIn(task['id'],[m['body']['task'] for m in self.worker.env.LIVE.messages])
+        self.assertEqual(before,await self.worker.rows('SELECT * FROM reports'))
+        await self.worker.publish(self.now)
+        index=json.loads(await (await self.worker.env.ARCHIVE.get('index.json')).text())
+        self.assertFalse(any(s['source']=='noaa_nws' for s in index['collection']+index['recovery']))
+        with patch.object(self.worker,'response',new=AsyncMock()) as response:
+            await self.worker.collect(json.loads(task['payload']),'live')
+            response.assert_not_awaited()

@@ -22,21 +22,20 @@ from ledger.metar import UTC, iso, parse_time, parse_awc
 from ledger.evidence import decode, bulletin_reference
 from ledger.sources import Links, collective_listing, eccc_live_links
 from ledger.policy import daily, day_bounds, resolution_deadline
-from planner import canonical, digest, job, live_jobs, recovery_jobs, nws_recovery_jobs, planning_jobs, recent_dates, retained_dates, retention_start, TGFTP_HISTORY
+from planner import canonical, digest, job, live_jobs, recovery_jobs, planning_jobs, recent_dates, retained_dates, retention_start, TGFTP_HISTORY
 from settings import SETTINGS
 
 MAX_BODY = 8_000_000
-GOVERNMENT_HOSTS = {"aviationweather.gov", "tgftp.nws.noaa.gov", "api.weather.gov", "dd.weather.gc.ca", "dd.meteo.gc.ca", "api.met.no"}
+GOVERNMENT_HOSTS = {"aviationweather.gov", "tgftp.nws.noaa.gov", "dd.weather.gc.ca", "dd.meteo.gc.ca", "api.met.no"}
 IMMUTABLE = "public, max-age=86400, immutable"
 LATEST = "public, max-age=0, s-maxage=10, must-revalidate"
 RESERVATION_SECONDS = 900
 # Shared across both queues and all isolates, including retries and alternate hosts.
-REQUEST_SPACING_MS = {"noaa_awc": 1000, "eccc": 1100, "noaa_tgftp": 250, "noaa_nws": 1000, "met_no": 1000}
+REQUEST_SPACING_MS = {"noaa_awc": 1000, "eccc": 1100, "noaa_tgftp": 250, "met_no": 1000}
 # Outstanding messages per class, not an unbounded number added every minute.
 RECOVERY_LANES = (("kind='plan'", 8),
                   ("source='noaa_awc' AND kind!='plan'", 60),
                   ("source='noaa_tgftp' AND kind!='plan'", 20),
-                  ("source='noaa_nws' AND kind!='plan'", 20),
                   ("source='eccc' AND kind='directory'", 20),
                   ("source='eccc' AND kind='report'", 40))
 
@@ -89,7 +88,7 @@ class Default(WorkerEntrypoint):
         return await self.env.ARCHIVE.put(key, body, options)
 
     async def upsert_tasks(self, tasks, refresh_live=False):
-        tasks = list(tasks)
+        tasks = [task for task in tasks if task["source"] in SETTINGS["policy"]["source_order"]]
         statements = []
         if refresh_live:
             # Expire reception hours no longer in the live plan, in the same batch
@@ -142,9 +141,16 @@ class Default(WorkerEntrypoint):
             sent += len(tasks)
         return sent
 
+    async def retire_inactive_tasks(self, now):
+        sources = SETTINGS["policy"]["source_order"]
+        await self.statement("UPDATE tasks SET expires_at=MIN(expires_at,?),queued_until=0 WHERE source NOT IN ("
+                             + ",".join("?" for _ in sources) + ") AND (expires_at>? OR queued_until>0)",
+                             int(now.timestamp()), *sources, int(now.timestamp())).run()
+
     async def scheduled(self, controller, env=None, ctx=None):
         now = now_utc()
         airports = SETTINGS["airports"]
+        await self.retire_inactive_tasks(now)
         await self.upsert_tasks(live_jobs(airports, now), refresh_live=True)
         await self.dispatch("live", 300)
         # Planning itself is bounded queue work: a fresh owner deployment starts
@@ -202,6 +208,11 @@ class Default(WorkerEntrypoint):
         if not rows:
             return
         task = rows[0]
+        if task["source"] not in SETTINGS["policy"]["source_order"]:
+            # A queued pre-upgrade message must not revive retired collection.
+            await self.statement("UPDATE tasks SET expires_at=MIN(expires_at,?),lease_until=0,queued_until=0 WHERE id=? AND lease_token=?",
+                                 now, task_id, token).run()
+            return
         payload = json.loads(task["payload"])
         try:
             count = await self.collect(payload, task["mode"])
@@ -331,11 +342,11 @@ class Default(WorkerEntrypoint):
 
     async def collect(self, task, mode):
         source, url = task["source"], task["url"]
+        if source not in SETTINGS["policy"]["source_order"]:
+            return 0
         now = now_utc()
         if task["kind"] == "plan":
-            if source == "noaa_nws":
-                await self.upsert_tasks(nws_recovery_jobs(SETTINGS["airports"], now))
-            elif source == "noaa_awc":
+            if source == "noaa_awc":
                 jobs = recovery_jobs(SETTINGS["airports"], now, now+timedelta(hours=1),
                                      awc_offsets=range(SETTINGS["retention"]["days"]+2))
                 await self.upsert_tasks(j for j in jobs if j["source"] == "noaa_awc")
@@ -397,16 +408,6 @@ class Default(WorkerEntrypoint):
                     parsed.append({"icao": item.get("icaoId"), "raw": item.get("rawOb"), "parse_error": str(error)})
         else:
             parsed = list(decode(body, receipt))
-        if source == "noaa_nws" and mode == "recovery":
-            next_url = json.loads(body).get("pagination", {}).get("next")
-            if next_url:
-                check_url(next_url)
-                current, target = urlparse(url), urlparse(next_url)
-                page = task.get("page", 0)+1
-                if target.hostname != "api.weather.gov" or target.path != current.path or page > 8:
-                    raise ValueError("Invalid or excessive NWS pagination")
-                await self.upsert_tasks([job(source, "recovery", "report", next_url, 900,
-                                            now+timedelta(hours=6), page=page, once=True)])
         statements, record_ids = [], []
         for row in parsed:
             if row["icao"] not in allowed:

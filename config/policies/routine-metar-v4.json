@@ -1,8 +1,9 @@
 {
-  "version": "routine-metar-v5",
+  "version": "routine-metar-v4",
   "source_order": [
     "noaa_awc",
     "noaa_tgftp",
+    "noaa_nws",
     "eccc",
     "met_no"
   ],
@@ -22,6 +23,7 @@
     "noaa_awc": "receiptTime from the original AWC JSON; preserve subsecond precision.",
     "noaa_tgftp": null,
     "eccc": null,
+    "noaa_nws": null,
     "met_no": null
   },
   "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version.",

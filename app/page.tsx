@@ -536,7 +536,7 @@ export default function Home() {
                         {sources.map((s) => {
                           const v = row.sources[s.id];
                           return (
-                            <TableCell key={s.id}>
+                            <TableCell key={s.id} title={v?.report ? undefined : `${s.label}: no eligible reading for this time`}>
                               <span className="reading">
                                 {sourceTemperature(
                                   v?.report?.temperature_c,
@@ -700,7 +700,7 @@ export default function Home() {
               lows use the airport’s local calendar day.
             </p>
             <p>
-              NOAA AWC, TGFTP and NWS API are delivery paths from one agency.
+              NOAA AWC and TGFTP are delivery paths from one agency.
               ECCC and MET Norway add other distribution paths. No majority vote or temperature averaging
               is used. Current-policy days freeze when this site first publishes
               an eligible selected routine reading for the next local date, or
@@ -708,7 +708,8 @@ export default function Home() {
               first. Reports must be durably accepted before cutoff. Earlier
               days retain their original policy. Missing slots do not require
               review. Later corrections cannot change a locked day. NWS API
-              reports without explicit routine classification are excluded.
+              collection was retired because its observations do not reliably
+              identify routine METARs. Archived evidence remains auditable.
             </p>
             <p>
               MET Norway data: <a href="https://api.met.no/">Norwegian Meteorological Institute</a>,{' '}

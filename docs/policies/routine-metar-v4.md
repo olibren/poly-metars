@@ -1,4 +1,4 @@
-# Resolution policy: routine-metar-v5
+# Resolution policy: routine-metar-v4
 
 This document describes a proposed temperature resolution policy. The machine-readable
 version is `config/policy.json`. It is not the current rulebook of an existing market.
@@ -7,7 +7,7 @@ version is `config/policy.json`. It is not the current rulebook of an existing m
 
 For one registered airport and exact UTC observation time:
 
-1. Examine NOAA/AWC, then NOAA/TGFTP, then ECCC, then MET Norway.
+1. Examine NOAA/AWC, then NOAA/TGFTP, then NOAA/NWS API, then ECCC, then MET Norway.
 2. Within each source, find the highest explicit correction rank for this observation.
    `COR` and WMO `CCA` have rank 1; `CCB` has rank 2, and so on. An explicitly
    corrected version takes precedence over a later-received lower-ranked version.
@@ -15,7 +15,7 @@ For one registered airport and exact UTC observation time:
    Currently this is AWC's `receiptTime` from its original JSON, preserved as
    `source_received_at` with subsecond precision. It orders AWC's receipt of versions;
    it is not proof of the airport's original issuance order or sensor correctness.
-   TGFTP, ECCC and MET Norway have no supported per-report timestamp for this tie-break.
+   TGFTP, NWS API, ECCC and MET Norway have no supported per-report timestamp for this tie-break.
 4. Never substitute our retrieval time, HTTP Date/Last-Modified, a filename, array
    position or bulletin position. Missing, malformed, timezone-free or pre-observation
    source receipt times are unordered. An untimed legacy copy of exactly the same
@@ -81,7 +81,8 @@ Future slots are pending. Schedule expectations do not prove every expected repo
 was actually issued, nor do filled slots prove no additional report was missed.
 
 Continuous collection and a separate recovery queue cover the last 30 days, within
-upstream availability. AWC and ECCC offer up to 30 days; MET Norway provides the available last 24 hours. TGFTP's rotating files do
+upstream availability. AWC and ECCC offer up to 30 days; NWS API recovery requests seven days,
+within upstream availability and with station-dependent coverage. TGFTP's rotating files do
 not guarantee that history. Restarts resume bounded historical planning. Before cutoff, a newly
 obtained higher-priority report or correction may change a selection. After locking,
 late reports and corrections are retained separately and cannot change the day.
@@ -159,22 +160,24 @@ shows Live while revisions are allowed, Finalizing while a triggered/deadline lo
 is being published, and Locked afterward. There is no settlement submission service.
 The existing rolling retention window applies to locked records and trigger evidence.
 
-## Retired NWS observations API
+## NWS API eligibility and redundancy
 
-V5 removes NWS API from active collection and source selection. Its observation
-schema has no routine/SPECI discriminator, and received raw messages did not carry
-explicit classification. EGLC returned no observations. Station network/provider
-metadata, reporting minute and QC flags do not establish report type. Alternative
-text products did not provide current coverage for the configured stations.
-See [the investigation](docs/WEATHER_GOV_COMPATIBILITY.md#nws-retirement-investigation).
+NWS API responses are archived as original GeoJSON. Temperature is parsed only from
+`rawMessage`; decoded `temperature` and 24-hour max/min fields do not substitute for
+a METAR. The JSON station and timestamp must agree with the raw report and requested
+station. Explicit COR is preserved. The observation timestamp is not a receipt time.
 
-Original NWS GeoJSON, normalized reports, receipts and historical revisions remain
-subject to the existing retention policy. The decoder remains available for offline
-replay; no reports are relabeled or inferred. Existing locks are immutable.
+Many NWS observations have no raw message, and raw reports often omit METAR/SPECI
+classification. Observations without raw messages remain in the original GeoJSON
+only; no synthetic METAR or per-poll rejection row is created. Unlabeled reports are retained as
+unclassified and excluded. Do not infer routine status from the reporting minute or
+silently label all API observations METAR. Thus NWS adds a delivery path but is not a
+complete replacement for TGFTP under this routine-only policy. All three NOAA paths
+remain correlated, and coverage must be evaluated per station.
 
 ## Policy versions and adoption
 
-V1, v2, v3 and v4 documents/configuration are preserved under `docs/policies/` and
+V1, v2 and v3 documents/configuration are preserved under `docs/policies/` and
 `config/policies/`. Their evidence continues to replay with its original rounding,
 source order and finality rules. Existing immutable locks always win.
 
@@ -182,11 +185,7 @@ The v4 migration records a prospective activation time, also retained in
 `next-day-locking.json`. Days whose observation interval ends after that activation
 use v4. Already-ended v3 days retain their original midnight cutoff, even if their
 finalizer had not run. Days before the original v3 activation retain v2 history.
-V5 changes only the active source hierarchy for unlocked v4-governed days. It
-retains v4 rounding, eligibility and publication-triggered finality, including
-original activation and first-publication receipts. No migration or cutoff reset
-is required; existing v4 locks and trigger manifests keep their exact policy.
-Building does not publish or deploy a change.
+Applying a migration or building does not publish or deploy this change.
 
 This remains a proposed alternate resolution source, not an adopted Polymarket
 service or exact reproduction of the weather.gov viewer. The viewer displays a

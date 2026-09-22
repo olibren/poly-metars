@@ -53,9 +53,6 @@ def live_jobs(airports, now):
         yield job("met_no", "live", "report", "https://api.met.no/weatherapi/tafmetar/1.0/metar.xml?" + query, 60, expiry)
     for name in sorted({n for a in airports for n in a["tgftp_files"]}):
         yield job("noaa_tgftp", "live", "report", "https://tgftp.nws.noaa.gov/data/raw/sa/" + name, 60, expiry)
-    for station in stations:
-        yield job("noaa_nws", "live", "report",
-                  f"https://api.weather.gov/stations/{station}/observations?limit=100", 60, expiry)
     for center, prefixes in centers(airports).items():
         for offset in (0, 1):
             hour = (now - timedelta(hours=offset)).replace(minute=0, second=0, microsecond=0)
@@ -67,8 +64,6 @@ def planning_jobs(now, days=30):
     """Small durable planning messages; the existing recovery queue expands them."""
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     yield job("noaa_awc", "recovery", "plan", "https://aviationweather.gov/api/data/metar",
-              3600, today+timedelta(days=1), date=today.date().isoformat())
-    yield job("noaa_nws", "recovery", "plan", "https://api.weather.gov/stations",
               3600, today+timedelta(days=1), date=today.date().isoformat())
     for offset in range(days+2):
         start = today-timedelta(days=offset)
@@ -115,16 +110,3 @@ def recovery_jobs(airports, now, since, until=None, awc_offsets=None):
 def recent_dates(airports, now):
     return sorted({(now.astimezone(ZoneInfo(a["timezone"])).date()-timedelta(days=d)).isoformat()
                    for a in airports for d in range(3)}, reverse=True)
-
-
-def nws_recovery_jobs(airports, now):
-    """Bounded six-hour windows over seven days, within upstream availability."""
-    anchor = now.replace(hour=now.hour//6*6, minute=0, second=0, microsecond=0)
-    for airport in airports:
-        for offset in range(28):
-            start = anchor-timedelta(hours=6*offset)
-            end = start+timedelta(hours=6)
-            query = urlencode({"start": iso(start), "end": iso(end), "limit": 500})
-            yield job("noaa_nws", "recovery", "report",
-                      f"https://api.weather.gov/stations/{airport['icao']}/observations?"+query,
-                      900 if offset < 8 else 86400, end+timedelta(days=7), page=0)

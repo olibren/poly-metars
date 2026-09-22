@@ -11,7 +11,7 @@ The collector has no public URL and its HTTP handler always returns 404. There i
 no observation upload, correction, manual temperature override, or public trigger.
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
-publicly documented process. V4 days lock on this site’s first eligible next-day publication or the following
+publicly documented process. V4/v5 days lock on this site’s first eligible next-day publication or the following
 date’s 23:59:00 America/New_York deadline. Existing v3 locks remain unchanged;
 pre-v3 history remains under v2.
 
@@ -120,7 +120,7 @@ are idempotent. Messages carry their reservation so stale deliveries are ignored
 Claims are atomic, reservations last 15 minutes and execution leases
 last 180 seconds. A failed send releases its reservation; lost messages and exhausted
 error retries recover automatically through cron. Outstanding recovery messages are
-bounded separately for planning, AWC, TGFTP, NWS API, ECCC directories and ECCC files. Large
+bounded separately for planning, AWC, TGFTP, ECCC directories and ECCC files. Large
 backlogs in one class cannot monopolize dispatch. Unchecked, earliest-expiring work
 comes first within each class; TGFTP's rotating listing precedes its files.
 
@@ -134,7 +134,7 @@ migration or government API credential is required. Old recovery cursors are ign
 Task inserts are batched below D1's statement binding limit.
 
 Request clocks in D1 pace both queues, retries and alternate hosts together: at least
-1 second between AWC and between NWS API request slots, 1.1 seconds for ECCC
+1 second between AWC and between MET Norway request slots, 1.1 seconds for ECCC
 and 0.25 seconds for TGFTP.
 These are shared clocks, not independent per-consumer sleeps. Live work has priority
 access to future slots; recovery waits only briefly and otherwise sends a delayed
@@ -157,7 +157,7 @@ and task kind's task count, unchecked count, rechecks due, outstanding messages,
 errors and latest successful check (Unix seconds). Planning tasks must finish before
 the task counts describe the entire window; file discovery can increase the counts.
 These are processing counters, not a completeness percentage. Airport-day missing
-slots and evidence remain the coverage record. All five sources may share upstream
+slots and evidence remain the coverage record. All four active sources may share upstream
 observations; the deployment is independently operable by its owner but depends on
 Cloudflare and government availability.
 
@@ -319,19 +319,8 @@ checks, offline replay and Cloudflare dry run. Days ending after v4 activation u
 the new policy; already-ended v3 days still use their original midnight cutoff.
 The existing section above describes recovery of those v3 days.
 
-NWS API collection uses `api.weather.gov/stations/{ICAO}/observations` with an
-identifying User-Agent. Live requests retrieve the latest 100 observations every
-minute. Recovery uses six-hour windows over seven days, rechecking the most recent
-48 hours every 15 minutes and older windows daily, within upstream availability.
-Pagination stays on the same allowlisted station route and runs as bounded recovery
-queue jobs (maximum eight continuation pages); excess pagination fails visibly.
-Live and recovery share a one-request-per-second NWS clock. No API key is required.
-
-Original GeoJSON is retained. Observations without raw text remain in that response
-only (avoiding duplicate rejection records on every poll); a raw report without
-explicit METAR classification remains unclassified, not inferred from its minute.
-A successful empty station response is a successful check, not proof of coverage.
-See WEATHER_GOV_COMPATIBILITY.md before treating NWS as a TGFTP replacement.
+NWS API collection was introduced in v4 and retired in v5; the current planner does
+not schedule observation queries or pagination. See the retirement section below.
 
 V4 publication receipts live at `first-publications/YYYY-MM-DD/ICAO.json`. An index
 commit first advertises a selected next-day reading. Its R2 upload timestamp,
@@ -375,3 +364,19 @@ Inspect `met_no` route errors, especially HTTP 203 (provider deprecation).
 a Norway-only successor and retains international data for only 24 hours.
 Do not treat this path as guaranteed coverage or a 30-day archive. Preserve
 CC BY 4.0 attribution in the site, policy, source registry and handover.
+
+## V5 NWS retirement
+
+No schema migration is needed. The first new cron expires tasks whose source is no
+longer in the active policy. New task insertion filters inactive sources, and queued
+pre-upgrade messages are acknowledged without fetching or planning retired sources.
+A fetch already running on the previous Worker may finish during rollout; its
+original evidence is preserved. Expired task metadata follows normal pruning.
+Do not delete NWS reports, raw responses or receipts as part of this removal.
+
+V5 removes NWS from unlocked next-day-governed revisions and from live health and
+source lists. Existing locks, first-publication receipts and embedded v4 policies
+stay unchanged. No finality activation is reset. The historical NWS evidence decoder
+is retained for offline verification. Confirm zero active NWS tasks, four current
+source columns, unchanged old locks and a successful offline audit after deployment.
+See WEATHER_GOV_COMPATIBILITY.md for schema, format and coverage findings.

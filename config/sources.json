@@ -16,14 +16,6 @@
     "agency_family": "NOAA"
   },
   {
-    "id": "noaa_nws",
-    "label": "NOAA / NWS API",
-    "agency": "NOAA \u00b7 United States",
-    "documentation": "https://www.weather.gov/documentation/services-web-api",
-    "retention": "Bounded seven-day recovery, within upstream availability; coverage varies by station",
-    "agency_family": "NOAA"
-  },
-  {
     "id": "eccc",
     "label": "ECCC",
     "agency": "Environment Canada \u00b7 Canada",
