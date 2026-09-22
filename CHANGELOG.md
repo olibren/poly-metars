@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-09-22 — Next-day publication locking, NWS API and MET Norway (routine-metar-v4)
+
+- Keep revisions open after local midnight until this site first publishes an eligible selected routine METAR for the next local date, capped at 23:59:00 America/New_York on the following calendar date.
+- Pin the successful index publication, triggering revision and raw evidence; replay the trigger and cutoff offline, including interrupted publication/finalization. Preserve all existing v3 locks and historical policy replay.
+- Add independently paced NWS API live collection and bounded seven-day recovery after TGFTP and before ECCC. Preserve GeoJSON; exclude missing raw messages and unclassified reports.
+- Match weather.gov WRH table rounding for exact negative halves in v4 while retaining tenth-degree raw temperatures. Document its Synoptic backend and broader observation coverage; do not claim exact market equivalence.
+- Add MET Norway after ECCC, with original XML evidence, explicit routine/special/correction metadata, last-24-hour gap recovery, cache expiry and conditional requests. Preserve original receipts across 304s and interrupted ingestion; include CC BY attribution and document the announced international-service withdrawal.
+- Add prospective migration 0004; no deployment is performed by local checks or builds.
+
+## 2026-09-22 — Simpler daily temperature viewer
+
+- Focus the page on airport/date selection, daily high and low, a single lock status, and the multi-source readings table.
+- Keep exact METAR reports expandable by row; move methodology, coverage and collection diagnostics, and evidence links into optional details.
+- Use a quieter white layout, compact table labels, and a responsive two-card temperature summary; preserve airport-day URLs and resolution calculations.
+
+## 2026-09-22 — Faster local frontend preview
+
+- Make `npm run dev` read published evidence through the development proxy, so local UI edits hot-reload without running a collector or deploying.
+- Allow `METAR_DATA_ORIGIN` to select a local Wrangler site or offline fixture server; production routing is unchanged.
+- Document private Tailscale preview with an exact allowed hostname and IPv4 loopback binding for Serve.
+
 ## 2026-09-22 — Automatic local-midnight locking (routine-metar-v3)
 
 - Freeze each governed airport/day at its next local midnight from the best available selected observations, without incomplete/unresolved day status, review or adjudication.

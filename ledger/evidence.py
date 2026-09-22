@@ -4,8 +4,49 @@ from datetime import datetime
 from email.utils import parsedate_to_datetime
 import json
 import re
+from urllib.parse import urlparse, parse_qs
+import xml.etree.ElementTree as ET
 
-from .metar import UTC, parse_bulletin, parse_awc, parse_time, parse_collective
+from .metar import UTC, parse_bulletin, parse_awc, parse_nws, parse_time, parse_collective, parse_report
+
+
+def decode_met_no(body, receipt):
+    """MET Norway's XML envelope supplies classification and an absolute UTC date."""
+    # No DTD/entity expansion is needed for the upstream schema.
+    xml = body.decode("utf-8")
+    if "<!DOCTYPE" in xml.upper() or "<!ENTITY" in xml.upper():
+        raise ValueError("Unexpected XML declaration")
+    root = ET.fromstring(xml)
+    ns = {"m": "http://api.met.no", "g": "http://www.opengis.net/gml/3.2"}
+    if root.tag != "{http://api.met.no}aviationProducts":
+        raise ValueError("Expected MET Norway aviationProducts")
+    stations = set(parse_qs(urlparse(receipt["url"]).query).get("icao", [""])[0].split(","))
+    for item in root.findall("m:meteorologicalAerodromeReport", ns):
+        station = item.findtext("m:icaoAirportIdentifier", "", ns).strip()
+        raw = item.findtext("m:metarText", "", ns).strip()
+        try:
+            fields = ("m:icaoAirportIdentifier", "m:metarText", "m:metarType",
+                      "m:validTime/g:TimeInstant/g:timePosition")
+            if any(len(item.findall(field, ns)) != 1 for field in fields):
+                raise ValueError("Missing or duplicate MET Norway metadata")
+            flags = set(item.findtext("m:metarType", "", ns).split())
+            if flags - {"METAR", "SPECI", "AUTO", "COR"} or {"METAR", "SPECI"} <= flags:
+                raise ValueError("Unknown or contradictory MET Norway classification")
+            stamp = item.findtext(fields[-1], "", ns).strip()
+            observed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            # This API documents its unqualified XML timestamps as UTC.
+            if observed.tzinfo is None:
+                observed = observed.replace(tzinfo=UTC)
+            kind = "SPECI" if "SPECI" in flags else "METAR"
+            row = parse_report(raw, observed, kind=kind, correction=int("COR" in flags),
+                               observed_at=observed.isoformat())
+            if station not in stations or row["icao"] != station:
+                raise ValueError("MET Norway report disagrees with requested station")
+            if kind == "SPECI" and row["report_type"] != "SPECI":
+                raise ValueError("MET Norway special classification contradicts raw report")
+            yield row
+        except (ValueError, TypeError) as error:
+            yield {"icao": station, "raw": raw, "parse_error": str(error)}
 
 
 def bulletin_reference(receipt):
@@ -31,7 +72,31 @@ def bulletin_reference(receipt):
 
 def decode(body, receipt):
     """Use the source's timestamp context, never the auditor's current date."""
-    if receipt["source"] == "noaa_awc":
+    if receipt["source"] == "met_no":
+        yield from decode_met_no(body, receipt)
+    elif receipt["source"] == "noaa_nws":
+        payload = json.loads(body)
+        if not isinstance(payload, dict) or payload.get("type") != "FeatureCollection" or not isinstance(payload.get("features"), list):
+            raise ValueError("Expected NWS observation FeatureCollection")
+        for feature in payload["features"]:
+            props = feature.get("properties") if isinstance(feature, dict) else None
+            if isinstance(props, dict) and not props.get("rawMessage"):
+                # Normal subhourly non-METAR observations can vastly outnumber
+                # METARs. Preserve them in the original GeoJSON, without creating
+                # a fresh per-observation rejection object on every poll.
+                continue
+            try:
+                row = parse_nws(feature)
+                match = re.fullmatch(r"/stations/([A-Z0-9]{4})/observations", urlparse(receipt["url"]).path)
+                if not match or row["icao"] != match[1]:
+                    raise ValueError("NWS report disagrees with requested station")
+                yield row
+            except (ValueError, KeyError, TypeError, AttributeError) as error:
+                props = feature.get("properties", {}) if isinstance(feature, dict) else {}
+                props = props if isinstance(props, dict) else {}
+                yield {"icao": props.get("stationId") or str(props.get("station", "")).rstrip("/").split("/")[-1],
+                       "raw": props.get("rawMessage"), "parse_error": str(error)}
+    elif receipt["source"] == "noaa_awc":
         payload = json.loads(body) if body else []
         if not isinstance(payload, list):
             raise ValueError("Expected AWC report array")

@@ -1,7 +1,7 @@
 """Pure selection rules. No networking, storage or market-specific exceptions."""
 
 from datetime import datetime, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_FLOOR
 from zoneinfo import ZoneInfo
 from .metar import UTC, iso, parse_time
 
@@ -112,10 +112,12 @@ def resolve(reports, source_order, *, revision_order=None):
     }
 
 
-def market_value(temp_c, unit):
+def market_value(temp_c, unit, rounding=None):
     value = Decimal(str(temp_c))
     if unit == "F":
         value = value * 9 / 5 + 32
+    if rounding == "half_toward_positive":
+        return int((value+Decimal("0.5")).to_integral_value(rounding=ROUND_FLOOR))
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
@@ -124,20 +126,54 @@ def day_bounds(day, timezone):
     return local.astimezone(UTC), (local + timedelta(days=1)).astimezone(UTC)
 
 
+def resolution_deadline(day):
+    """23:59 ET on the next calendar date; ET follows New York DST rules."""
+    following = datetime.fromisoformat(day)+timedelta(days=1)
+    return following.replace(hour=23, minute=59, tzinfo=ZoneInfo("America/New_York")).astimezone(UTC)
+
+
+def lock_cutoff(airport, date, policy, now, finalization):
+    end = day_bounds(date, airport["timezone"])[1]
+    cutoff = parse_time(finalization["cutoff_at"])
+    if policy.get("lock_mode") == "local_midnight":
+        if cutoff != end or now < end:
+            raise ValueError("Invalid midnight lock")
+    elif policy.get("lock_mode") == "next_day_publication":
+        deadline = resolution_deadline(date)
+        trigger = finalization.get("trigger")
+        if finalization.get("deadline_at") != iso(deadline) or now < cutoff:
+            raise ValueError("Invalid next-day lock deadline")
+        if trigger is None:
+            if finalization.get("reason") != "deadline" or cutoff != deadline:
+                raise ValueError("Invalid deadline lock")
+        else:
+            next_date = (datetime.fromisoformat(date)+timedelta(days=1)).date().isoformat()
+            _, next_end = day_bounds(next_date, airport["timezone"])
+            observed = parse_time(trigger["observed_at"])
+            published = parse_time(trigger["published_at"])
+            if (finalization.get("reason") != "next_day_publication" or trigger["icao"] != airport["icao"]
+                    or trigger["date"] != next_date or not end <= observed < next_end
+                    or observed > published or cutoff != published or cutoff >= deadline):
+                raise ValueError("Invalid next-day publication trigger")
+    else:
+        raise ValueError("Unsupported lock policy")
+    return cutoff
+
+
 def daily(airport, date, reports, policy, now, finalization=None):
     start, end = day_bounds(date, airport["timezone"])
     if finalization is not None:
-        if policy.get("lock_mode") != "local_midnight" or finalization.get("cutoff_at") != iso(end) or now < end:
-            raise ValueError("Invalid midnight lock")
+        cutoff = lock_cutoff(airport, date, policy, now, finalization)
         accepted = finalization.get("accepted_at", {})
         if set(accepted) != {r["id"] for r in reports}:
             raise ValueError("Lock acceptance set mismatch")
         for report in reports:
             stamp = accepted[report["id"]]
-            if (not isinstance(stamp, int) or isinstance(stamp, bool) or stamp >= end.timestamp()
-                    or parse_time(report["fetched_at"]) >= end
+            if (not isinstance(stamp, int) or isinstance(stamp, bool) or stamp >= cutoff.timestamp()
+                    or parse_time(report["fetched_at"]) >= cutoff
                     or stamp < int(parse_time(report["fetched_at"]).timestamp())):
-                raise ValueError("Report not durably accepted before midnight")
+                raise ValueError("Report not durably accepted before midnight" if policy.get("lock_mode") == "local_midnight"
+                                 else "Report not durably accepted before cutoff")
     in_day = [
         r
         for r in reports
@@ -170,7 +206,7 @@ def daily(airport, date, reports, policy, now, finalization=None):
             }
         )
     values = [
-        market_value(row["selected"]["temperature_c"], airport["unit"])
+        market_value(row["selected"]["temperature_c"], airport["unit"], policy.get("rounding_mode"))
         for row in rows
         if row["selected"]
     ]
@@ -216,12 +252,18 @@ def daily(airport, date, reports, policy, now, finalization=None):
     }
     if policy.get("revision_order") == "source_receipt_time":
         result["policy_version"] = policy["version"]
-    if policy.get("lock_mode") == "local_midnight":
+    if policy.get("rounding_mode"):
+        result["rounding_mode"] = policy["rounding_mode"]
+    if policy.get("lock_mode") in ("local_midnight", "next_day_publication"):
         # Coverage/conflicts remain in the evidence, never a human-review gate.
-        summary["status"] = "locked" if finalization is not None else "finalization_pending" if now >= end else "live"
+        boundary = end if policy["lock_mode"] == "local_midnight" else resolution_deadline(date)
+        summary["status"] = "locked" if finalization is not None else "finalization_pending" if now >= boundary else "live"
         if finalization is not None:
             summary["missing"] = sum(r["expected"] and not r["selected"] for r in rows)
         result["source_order"] = policy["source_order"]
-        result["cutoff_at"] = iso(end)
+        result["cutoff_at"] = finalization["cutoff_at"] if finalization is not None else iso(boundary)
+        if policy["lock_mode"] == "next_day_publication":
+            result["deadline_at"] = iso(boundary)
+            result["lock_mode"] = policy["lock_mode"]
         result["finalization"] = finalization
     return result

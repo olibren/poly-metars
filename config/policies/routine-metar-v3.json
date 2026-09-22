@@ -1,32 +1,27 @@
 {
-  "version": "routine-metar-v4",
+  "version": "routine-metar-v3",
   "source_order": [
     "noaa_awc",
     "noaa_tgftp",
-    "noaa_nws",
-    "eccc",
-    "met_no"
+    "eccc"
   ],
   "report_types": [
     "METAR"
   ],
   "temperature": "Use the raw METAR T group when present and consistent; otherwise the main Celsius temperature group.",
-  "rounding": "Convert Celsius to market units, then round to a whole degree, with exact halves toward positive infinity, matching weather.gov WRH table Math.round. Historical policies retain their original rounding.",
+  "rounding": "Convert Celsius to market units, then round half away from zero to a whole degree.",
   "day": "Airport local calendar day, including DST transitions.",
   "corrections": "Highest explicit correction rank within each source, then its latest supported per-report receipt time. Preserve all versions. Never use local fetch order or file modification time.",
   "cross_source_conflicts": "Select by source order and display the disagreement; a selected reading does not require human review.",
   "delivery_grace_minutes": 15,
-  "finalization": "Lock at the first publication by this site of an eligible selected routine METAR for the following airport-local date, or 23:59:00 America/New_York on the calendar date following the observation date, whichever comes first. Only reports durably accepted strictly before cutoff enter the result. Later revisions cannot change a locked day.",
+  "finalization": "Automatically lock at the next airport-local midnight using reports durably accepted before that cutoff. Gaps and excluded ambiguous observations are diagnostic only; resolve from the selected readings without review or adjudication. No selected readings means no numeric result. Later reports and corrections cannot change a locked day.",
   "unknown_classification": "Exclude, retain and explain. Never infer routine status from a scheduled minute.",
   "revision_order": "source_receipt_time",
   "source_timing": {
     "noaa_awc": "receiptTime from the original AWC JSON; preserve subsecond precision.",
     "noaa_tgftp": null,
-    "eccc": null,
-    "noaa_nws": null,
-    "met_no": null
+    "eccc": null
   },
   "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version.",
-  "lock_mode": "next_day_publication",
-  "rounding_mode": "half_toward_positive"
+  "lock_mode": "local_midnight"
 }

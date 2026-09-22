@@ -14,7 +14,9 @@ from ledger.policy import daily, day_bounds
 
 
 class MidnightLockTests(unittest.IsolatedAsyncioTestCase):
-    asyncSetUp = support.CloudflareTests.asyncSetUp
+    async def asyncSetUp(self):
+        await support.CloudflareTests.asyncSetUp(self)
+        self.module.SETTINGS["policy"] = self.module.SETTINGS["midnight_policy"]
     asyncTearDown = support.CloudflareTests.asyncTearDown
     verify_published_day = support.CloudflareTests.verify_published_day
 

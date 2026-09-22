@@ -1,4 +1,4 @@
-# Resolution policy: routine-metar-v3
+# Resolution policy: routine-metar-v4
 
 This document describes a proposed temperature resolution policy. The machine-readable
 version is `config/policy.json`. It is not the current rulebook of an existing market.
@@ -7,7 +7,7 @@ version is `config/policy.json`. It is not the current rulebook of an existing m
 
 For one registered airport and exact UTC observation time:
 
-1. Examine NOAA/AWC, then NOAA/TGFTP, then ECCC.
+1. Examine NOAA/AWC, then NOAA/TGFTP, then NOAA/NWS API, then ECCC, then MET Norway.
 2. Within each source, find the highest explicit correction rank for this observation.
    `COR` and WMO `CCA` have rank 1; `CCB` has rank 2, and so on. An explicitly
    corrected version takes precedence over a later-received lower-ranked version.
@@ -15,7 +15,7 @@ For one registered airport and exact UTC observation time:
    Currently this is AWC's `receiptTime` from its original JSON, preserved as
    `source_received_at` with subsecond precision. It orders AWC's receipt of versions;
    it is not proof of the airport's original issuance order or sensor correctness.
-   TGFTP and ECCC have no supported per-report timestamp for this tie-break.
+   TGFTP, NWS API, ECCC and MET Norway have no supported per-report timestamp for this tie-break.
 4. Never substitute our retrieval time, HTTP Date/Last-Modified, a filename, array
    position or bulletin position. Missing, malformed, timezone-free or pre-observation
    source receipt times are unordered. An untimed legacy copy of exactly the same
@@ -65,7 +65,8 @@ configured IANA timezone. Observation time determines the day, not retrieval tim
 Daylight-saving transitions can produce 23-hour or 25-hour days.
 
 Convert each selected Celsius value to the market's configured unit, then round to the
-nearest whole degree, with exact halves away from zero. For Fahrenheit, conversion
+nearest whole degree, with exact halves toward positive infinity (the weather.gov
+WRH table’s `Math.round` convention: −2.5 becomes −2; +2.5 becomes +3). For Fahrenheit, conversion
 is C × 9/5 + 32 before rounding. The maximum is the daily observed high and the minimum
 is the daily observed low. The same observations and selection rules apply to both.
 
@@ -80,7 +81,8 @@ Future slots are pending. Schedule expectations do not prove every expected repo
 was actually issued, nor do filled slots prove no additional report was missed.
 
 Continuous collection and a separate recovery queue cover the last 30 days, within
-upstream availability. AWC and ECCC offer up to 30 days; TGFTP's rotating files do
+upstream availability. AWC and ECCC offer up to 30 days; NWS API recovery requests seven days,
+within upstream availability and with station-dependent coverage. TGFTP's rotating files do
 not guarantee that history. Restarts resume bounded historical planning. Before cutoff, a newly
 obtained higher-priority report or correction may change a selection. After locking,
 late reports and corrections are retained separately and cannot change the day.
@@ -112,52 +114,102 @@ Download and retain an audit bundle before expiry if it is needed for a longer
 dispute or recordkeeping period. This retention change does not change observation
 eligibility, source priority, rounding or the separate locking contract.
 
-## Midnight cutoff and automatic locking
+## Next-day publication cutoff and automatic locking
 
-For days governed by v3, the cutoff is the next local midnight in the airport's
-pinned timezone: the exclusive end of the observation day. There is no grace
-period after midnight and no human review or adjudication. Resolve from the best
-available readings selected by the published hierarchy, even with missing slots
-or excluded ambiguous observations. These are diagnostics, not `incomplete` or
-`unresolved` day statuses. No selected values means a locked record with null high
-and low, never an invented temperature.
+For v4 days, the cutoff is the earlier of:
+
+- The first successful publication in **this site's public index** of an eligible,
+  selected routine METAR for the same airport's immediately following local date.
+- **23:59:00 America/New_York on the calendar date following the observation date.**
+  This is Eastern Time, including daylight saving time, not a fixed UTC offset.
+
+Local midnight ends the observation interval but does not itself close the revision
+window. A correction or recovered report for the observation day can enter the
+result after midnight if it is durably accepted before cutoff. SPECI, NIL, unknown
+classification, missing temperature, future observations, and blocked/ambiguous
+selections do not trigger a next-day lock. A report from a later date does not stand
+in for the immediately following date. Source priority does not delay the trigger:
+an eligible selected fallback reading can trigger it.
+
+The first-publication receipt pins the next-day revision and selected report. Its
+time comes from the successful R2 index write's upload time, recorded to whole
+seconds; admission is strictly before that recorded second. Failed artifact writes
+and failed conditional index updates do not publish a reading or start a cutoff.
+Evidence stored at an immutable URL alone is not the publication trigger. A browser's
+cache or refresh time does not define publication. Finalization can run after the
+trigger, but it uses the original recorded cutoff, never its retry time.
 
 Only reports durably archived and accepted by the database strictly before cutoff
-may enter the result. Database acceptance time is recorded separately from our
-HTTP retrieval time and the upstream source receipt time. A report observed before
-midnight but first accepted at or after midnight is excluded from the locked input
-set. A response retrieved before cutoff but archived afterward is also too late.
-Never backdate acceptance during repair or recovery.
+may enter the result. Database acceptance is separate from HTTP retrieval and any
+upstream source receipt time. Fetches before cutoff archived afterward are too late.
+Never backdate acceptance during recovery. Late versions remain audit evidence but
+cannot change the locked result. Coverage gaps and conflicts are diagnostics; they
+do not require review or prevent automatic resolution. No eligible values produces
+null high/low, never an invented temperature or arbitrary lowest market bracket.
 
-The finalizer pins the report IDs, acceptance timestamps, cutoff, policy, airport
-registry, engine hashes and immutable day artifacts. An atomically created lock
-pointer selects one completed revision. Later source corrections, backfills,
-retries, index rebuilds and policy/engine changes cannot replace it. The live
-index follows that pointer throughout retention. There is no settlement submission
-integration; the locked public record is the proposed resolution source.
+The audit manifest pins acceptance times, cutoff reason, deadline, policy, registry,
+engine hashes and exact report inputs. Publication-triggered locks embed the first
+next-day revision's audit manifest and raw evidence as well. Offline replay checks
+that the trigger was an eligible selected reading for the correct airport/date.
+These records are operator assertions, not independent or government-signed proof
+of the first publication time or of completeness.
 
-The effective cutoff and actual publication time are separate. Scheduled jobs may
-run after midnight; the page says `Finalizing` until the immutable record is
-published, without admitting later reports. Completed records say `Locked`.
-Before cutoff the page says `Live`; missing slots and source differences do not
-introduce a manual gate.
+A conditional immutable lock pointer selects a completed day revision. Subsequent
+corrections, retries, index recovery and policy changes cannot replace it. The site
+shows Live while revisions are allowed, Finalizing while a triggered/deadline lock
+is being published, and Locked afterward. There is no settlement submission service.
+The existing rolling retention window applies to locked records and trigger evidence.
+
+## NWS API eligibility and redundancy
+
+NWS API responses are archived as original GeoJSON. Temperature is parsed only from
+`rawMessage`; decoded `temperature` and 24-hour max/min fields do not substitute for
+a METAR. The JSON station and timestamp must agree with the raw report and requested
+station. Explicit COR is preserved. The observation timestamp is not a receipt time.
+
+Many NWS observations have no raw message, and raw reports often omit METAR/SPECI
+classification. Observations without raw messages remain in the original GeoJSON
+only; no synthetic METAR or per-poll rejection row is created. Unlabeled reports are retained as
+unclassified and excluded. Do not infer routine status from the reporting minute or
+silently label all API observations METAR. Thus NWS adds a delivery path but is not a
+complete replacement for TGFTP under this routine-only policy. All three NOAA paths
+remain correlated, and coverage must be evaluated per station.
 
 ## Policy versions and adoption
 
-V1 and v2 policies and documents remain in `config/policies/` and `docs/policies/`.
-Their existing manifests replay without changes. A new v2 day-manifest schema pins
-v3 lock metadata in its revision identity; the verifier validates the strict
-cutoff and recomputes the result from the exact evidence.
+V1, v2 and v3 documents/configuration are preserved under `docs/policies/` and
+`config/policies/`. Their evidence continues to replay with its original rounding,
+source order and finality rules. Existing immutable locks always win.
 
-The migration records the activation time and stamps already archived reports as
-known present at migration. The first v3 publication preserves that activation in
-R2. Days ending after activation use midnight locking; days that had already ended
-retain the v2 historical policy. They are not falsely labeled as locked at their
-past midnight. Rollout to an adopted market must be publicly agreed before trading;
-this repository remains a proposed source. The current user-authorized rollout
-also covers days open at activation.
+The v4 migration records a prospective activation time, also retained in
+`next-day-locking.json`. Days whose observation interval ends after that activation
+use v4. Already-ended v3 days retain their original midnight cutoff, even if their
+finalizer had not run. Days before the original v3 activation retain v2 history.
+Applying a migration or building does not publish or deploy this change.
 
-Locking does not extend retention. Frozen pages and their evidence remain available
-within the existing 30-day minimum retention window, then expire rather than
-recompute. Download an audit bundle for longer recordkeeping. Application-level
-immutability does not remove the account owner's ability to alter or delete storage.
+This remains a proposed alternate resolution source, not an adopted Polymarket
+service or exact reproduction of the weather.gov viewer. The viewer displays a
+broader observation set and uses Synoptic-supplied values. See
+[the compatibility review](docs/WEATHER_GOV_COMPATIBILITY.md). Any adoption must
+publicly agree the source, observation eligibility, cutoff and no-data rules before
+trading. Administrator access can still alter or delete storage; application-level
+immutability is not external certification.
+
+## MET Norway eligibility and attribution
+
+MET Norway is the final fallback after ECCC. Original Tafmetar XML is retained.
+The `meteorologicalAerodromeReport` envelope and required `metarType` field identify
+routine reports (empty type or AUTO), special reports (SPECI), and corrections (COR).
+Unknown flags, missing metadata, and station/timestamp contradictions are rejected;
+SPECI is excluded. XML validTime anchors the UTC observation date, never revision
+receipt order. Raw METAR temperature parsing is unchanged.
+
+The live batch includes the available last 24 hours and automatically recovers
+recent gaps. International records are discarded upstream after 24 hours; their
+announced successor covers Norway only. Cached responses preserve the original
+receipt and bytes, including on HTTP 304. HTTP 203 deprecation is surfaced as a
+source error rather than silently changing the source contract.
+
+Data: [Norwegian Meteorological Institute](https://api.met.no/),
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This site parses, filters
+and rounds those data under this policy. No provider endorsement is implied.

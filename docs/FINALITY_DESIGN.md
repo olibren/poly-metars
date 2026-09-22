@@ -1,6 +1,15 @@
-# Automatic local-midnight locking
+# Automatic publication-triggered locking
 
-Implemented by `routine-metar-v3`; see [the resolution policy](../POLICY.md).
+V4 uses the first successful public-index publication of an eligible selected routine
+METAR for the following airport-local date, capped at 23:59:00 America/New_York on
+the following calendar date. The committed index upload time is checkpointed in an
+immutable first-publication receipt before a subsequent index can replace it. Failed
+drafts do not trigger. Locked manifests embed the trigger revision and its evidence.
+See POLICY.md, OPERATIONS.md, and tests/test_next_day_lock.py for the current contract.
+
+## Historical v3 midnight locking
+
+Implemented by `routine-metar-v3`; see [the archived policy](policies/routine-metar-v3.md).
 
 - The airport's next local midnight is the strict cutoff, including DST changes.
 - Reports must be durably archived and database-accepted before cutoff. Source

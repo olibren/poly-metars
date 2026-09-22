@@ -11,8 +11,9 @@ The collector has no public URL and its HTTP handler always returns 404. There i
 no observation upload, correction, manual temperature override, or public trigger.
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
-publicly documented process. V3 days lock automatically at the next local midnight;
-pre-activation history remains under v2.
+publicly documented process. V4 days lock on this site’s first eligible next-day publication or the following
+date’s 23:59:00 America/New_York deadline. Existing v3 locks remain unchanged;
+pre-v3 history remains under v2.
 
 ## Install and deploy to a new account
 
@@ -59,6 +60,35 @@ in CI, including dependency synchronization and both deployment dry runs.
 
 ## Local runtime
 
+For frontend work, run `npm run dev` and open
+`http://localhost:3000/?airport=EGLC&date=2026-09-22` (choose the desired date).
+The local frontend hot-reloads edits and proxies `/data/` to the read-only site
+in `deploy/cloudflare.json`. No local collector, credentials or deployment is
+needed. Data is real published evidence, so this mode needs internet access;
+frontend changes do not change collection or production data.
+
+To preview from another device on your Tailscale network, bind to IPv4 loopback
+and allow the serving machine's exact Tailscale DNS hostname:
+
+```sh
+__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=your-machine.your-tailnet.ts.net npm run dev -- --hostname 127.0.0.1
+# One-time setup, only if Serve is not already configured for this port:
+tailscale serve --bg http://127.0.0.1:3000
+```
+
+Check `tailscale serve status` first to preserve any existing services. Open the
+HTTPS URL it prints on the other device, with Tailscale connected to the same
+tailnet. The development machine must stay awake with the dev server running.
+Serve proxies hot-reload WebSockets as well as page/data requests. This uses
+private Tailscale Serve, not public Funnel; do not disable Vite's host checks.
+
+To use a local backend instead, start the local Workers below, then run
+`METAR_DATA_ORIGIN=http://127.0.0.1:8793 npm run dev`. A separately served offline
+fixture directory with a `/data/` tree works with the same override. Backend and
+locking changes require the local Workers or offline tests, not just UI hot reload.
+
+Full local Cloudflare runtime:
+
 ```sh
 npm run cf:prepare
 npx wrangler d1 migrations apply poly-metars --local --config wrangler.collector.jsonc
@@ -73,7 +103,7 @@ curl 'http://localhost:8792/cdn-cgi/local/scheduled?format=json'
 Both processes share the local R2 state. Local testing fetches real public sources,
 but writes only to local storage. Visit localhost:8793. The old `ledger.http` process
 on port 8001 may serve existing historical fixtures for frontend development. The
-legacy local publisher rejects the v3 locking policy; use the Cloudflare runtime
+legacy local publisher rejects automatic locking policies; use the Cloudflare runtime
 for current collection and locking.
 
 ## Collection, failure and publication
@@ -90,7 +120,7 @@ are idempotent. Messages carry their reservation so stale deliveries are ignored
 Claims are atomic, reservations last 15 minutes and execution leases
 last 180 seconds. A failed send releases its reservation; lost messages and exhausted
 error retries recover automatically through cron. Outstanding recovery messages are
-bounded separately for planning, AWC, TGFTP, ECCC directories and ECCC files. Large
+bounded separately for planning, AWC, TGFTP, NWS API, ECCC directories and ECCC files. Large
 backlogs in one class cannot monopolize dispatch. Unchecked, earliest-expiring work
 comes first within each class; TGFTP's rotating listing precedes its files.
 
@@ -104,7 +134,8 @@ migration or government API credential is required. Old recovery cursors are ign
 Task inserts are batched below D1's statement binding limit.
 
 Request clocks in D1 pace both queues, retries and alternate hosts together: at least
-1 second between AWC request slots, 1.1 seconds for ECCC and 0.25 seconds for TGFTP.
+1 second between AWC and between NWS API request slots, 1.1 seconds for ECCC
+and 0.25 seconds for TGFTP.
 These are shared clocks, not independent per-consumer sleeps. Live work has priority
 access to future slots; recovery waits only briefly and otherwise sends a delayed
 replacement message. Normal pacing does not consume the queue's error retry budget.
@@ -126,7 +157,7 @@ and task kind's task count, unchecked count, rechecks due, outstanding messages,
 errors and latest successful check (Unix seconds). Planning tasks must finish before
 the task counts describe the entire window; file discovery can increase the counts.
 These are processing counters, not a completeness percentage. Airport-day missing
-slots and evidence remain the coverage record. All three sources may share upstream
+slots and evidence remain the coverage record. All five sources may share upstream
 observations; the deployment is independently operable by its owner but depends on
 Cloudflare and government availability.
 
@@ -148,7 +179,8 @@ without altering the original row or receipt. Live, recovery and offline replay
 use the same decoder. No database migration is required. TGFTP/ECCC file dates
 are not used to order individual report versions. Missing or invalid timing stays
 unordered, and unresolved selection is reported automatically without a manual
-review workflow. V3 adds the midnight boundary described below.
+review workflow. NWS API observation timestamps are not receipt times. V3 retains the old midnight
+boundary; v4 adds the publication/deadline boundary below.
 
 `config/retention.json` is the storage policy. D1 and the current index keep complete
 airport local days intersecting the last 30 days. Bounded pruning runs after
@@ -277,3 +309,69 @@ midnight that expected airport/day keys enter `index.locks`; alert on prolonged
 pending publication independently of collection health. Locked pages keep stable
 coverage diagnostics and do not inherit current live-source freshness warnings.
 The 30-day retention window and buffered R2 expiry still apply to locked records.
+
+
+## V4 next-day-publication rollout and recovery
+
+Run `0004_next_day_lock.sql` before deploying the v4 collector. It records a new
+activation time; no reports or old locks are rewritten. Deploy after the required
+checks, offline replay and Cloudflare dry run. Days ending after v4 activation use
+the new policy; already-ended v3 days still use their original midnight cutoff.
+The existing section above describes recovery of those v3 days.
+
+NWS API collection uses `api.weather.gov/stations/{ICAO}/observations` with an
+identifying User-Agent. Live requests retrieve the latest 100 observations every
+minute. Recovery uses six-hour windows over seven days, rechecking the most recent
+48 hours every 15 minutes and older windows daily, within upstream availability.
+Pagination stays on the same allowlisted station route and runs as bounded recovery
+queue jobs (maximum eight continuation pages); excess pagination fails visibly.
+Live and recovery share a one-request-per-second NWS clock. No API key is required.
+
+Original GeoJSON is retained. Observations without raw text remain in that response
+only (avoiding duplicate rejection records on every poll); a raw report without
+explicit METAR classification remains unclassified, not inferred from its minute.
+A successful empty station response is a successful check, not proof of coverage.
+See WEATHER_GOV_COMPATIBILITY.md before treating NWS as a TGFTP replacement.
+
+V4 publication receipts live at `first-publications/YYYY-MM-DD/ICAO.json`. An index
+commit first advertises a selected next-day reading. Its R2 upload timestamp,
+recorded to whole seconds, supplies the cutoff. A conditional immutable receipt
+pins that first revision/report. The publisher immediately follows with finalization;
+if interrupted, the next tick first persists pending receipts from the existing
+index's own upload time before replacing it. A failed/superseded draft never starts
+a cutoff. Browser caching does not affect it.
+
+Keep `next-day-locking.json`, `first-publications/`, `locking.json`, `locks/` and all
+referenced revisions/evidence during backup or recovery. Losing both an uncheckpointed
+index and its first-publication receipt destroys that publication provenance; do
+not invent a replacement timestamp. First-publication receipts are assertions by
+the source operator, not independently signed timestamps.
+
+The finalizer uses the earlier of the saved publication time and the fixed ET
+deadline. Data accepted at or after the recorded cutoff second stay outside the
+locked input set, even if fetched earlier. A next-day fallback-source reading can
+trigger; NIL, SPECI, unknown classification and unresolved selections cannot.
+The locked audit bundle embeds the triggering day's original manifest and all its
+raw evidence, so downloading one bundle is sufficient for offline replay.
+
+Monitor finalization after the next-day reading appears and at the ET deadline,
+not just at local midnight. No-next-day-report days stay live until that deadline.
+The UI distinguishes Live, Finalizing and Locked. Late corrections cannot change
+a lock; no usable readings still produces null high/low.
+
+## MET Norway fallback
+
+MET Norway follows ECCC in v4. Eight-station XML batches run in the live queue
+every minute, with a shared one-second request clock and identifying User-Agent.
+Each response covers available last-24-hour history, so recent recovery needs no
+separate jobs. The `met_no_cache:` D1 state entries retain the original receipt ID,
+Last-Modified and Expires. Do not refetch before Expires; send the exact previous
+Last-Modified as If-Modified-Since afterwards. A 304 is archived separately and
+replays the original 200 receipt, including after interrupted ingestion. No new
+schema is needed for this cache. Removing cache state only forces a fresh fetch.
+
+Inspect `met_no` route errors, especially HTTP 203 (provider deprecation).
+[MET Norway](https://api.met.no/weatherapi/tafmetar/1.0/documentation) has announced
+a Norway-only successor and retains international data for only 24 hours.
+Do not treat this path as guaranteed coverage or a 30-day archive. Preserve
+CC BY 4.0 attribution in the site, policy, source registry and handover.

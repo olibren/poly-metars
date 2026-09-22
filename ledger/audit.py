@@ -80,6 +80,15 @@ def verify_export(directory):
 
 def verify_live_day(root):
     manifest = json.loads((root / 'audit.json').read_text())
+    expected = verify_day_manifest(manifest, root / 'evidence')
+    if expected != json.loads((root / 'day.json').read_text()):
+        raise ValueError('Live day replay mismatch')
+    return {'verified': True, 'reports': len(manifest['reports']), 'replayed_airport_days': 1}
+
+
+def verify_day_manifest(manifest, evidence, depth=0):
+    if depth > 32:
+        raise ValueError('Excessive trigger manifest depth')
     if manifest['schema'] not in ('poly-metars-day-v1', 'poly-metars-day-v2'):
         raise ValueError('Unknown live audit schema')
     identity = {k: manifest[k] for k in ('date', 'icao', 'report_ids', 'policy_sha256', 'registry_sha256', 'engine_sha256')}
@@ -99,13 +108,25 @@ def verify_live_day(root):
         raise ValueError('Airport mismatch')
     if sorted(r['id'] for r in manifest['reports']) != manifest['report_ids']:
         raise ValueError('Report set mismatch')
-    verify_evidence(manifest['reports'], manifest['receipts'], root / 'evidence')
+    verify_evidence(manifest['reports'], manifest['receipts'], evidence)
+    trigger = (manifest.get('finalization') or {}).get('trigger')
+    if trigger:
+        attached = manifest.get('trigger_manifest')
+        if not attached or attached['revision'] != trigger['revision']:
+            raise ValueError('Missing or mismatched trigger manifest')
+        result = verify_day_manifest(attached, evidence, depth+1)
+        if (attached['icao'] != trigger['icao'] or attached['date'] != trigger['date']
+                or parse_time(attached['generated_at']) > parse_time(trigger['published_at'])):
+            raise ValueError('Trigger publication provenance mismatch')
+        selected = [r['selected'] for r in result['rows'] if r['selected']]
+        if not any(r['id'] == trigger['report_id'] and r['observed_at'] == trigger['observed_at'] for r in selected):
+            raise ValueError('Trigger is not an eligible selected reading')
+    elif 'trigger_manifest' in manifest:
+        raise ValueError('Unpinned trigger manifest')
     expected = daily(manifest['airport'], manifest['date'], manifest['reports'], manifest['policy'], parse_time(manifest['generated_at']), manifest.get('finalization'))
     expected.update({'generated_at': manifest['generated_at'], 'policy_sha256': manifest['policy_sha256'],
                      'registry_sha256': manifest['registry_sha256'], 'snapshot_id': manifest['revision']})
-    if expected != json.loads((root / 'day.json').read_text()):
-        raise ValueError('Live day replay mismatch')
-    return {'verified': True, 'reports': len(manifest['reports']), 'replayed_airport_days': 1}
+    return expected
 
 if __name__ == "__main__":
     import argparse

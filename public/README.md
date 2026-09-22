@@ -1,10 +1,11 @@
 # Poly METARs
 
 A public, auditable ledger of government METAR reports for airport-based temperature
-markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC**. Each row shows the
+markets. Source priority: **NOAA/AWC → NOAA/TGFTP → NOAA/NWS API → ECCC → MET Norway**. Each row shows the
 captured sources and the selected reading. This is an independent proposal, not
 an adopted Polymarket resolution source. Governed daily results lock automatically
-at local midnight from the best available selected observations.
+when this site first publishes an eligible reading for the following local date,
+or at 11:59 PM ET the following calendar date, whichever comes first.
 
 Site: https://poly-metars.olibren.workers.dev
 
@@ -38,9 +39,12 @@ Future and missing slots use the reader's current clock, even if collection stop
 |---|---:|---|
 | AWC live | 60 seconds | Previous 3 hours, batches of 8 airports |
 | TGFTP live | 60 seconds | Latest configured SA bulletin files |
+| NWS API live | 60 seconds | Latest 100 observations per station; raw classified METARs only |
+| MET Norway live + recent recovery | 60 seconds, respecting upstream cache expiry | Batches of eight stations; available last 24 hours |
 | ECCC live | 60 seconds | Recent reception directories; latest two bulletin times per route |
 | AWC recovery | 15 minutes recent / daily older | Last 30 days and complete local boundary days, within upstream retention |
 | TGFTP recovery | 5 minutes | Timestamped rotating global collectives |
+| NWS API recovery | 15 minutes recent / daily older | Six-hour windows over seven days, within upstream availability |
 | ECCC recovery | 30 minutes recent / 6 hours / daily older | Hourly directories covering the last 30 days |
 
 Live collection has its own queue and concurrency. Historical scans cannot occupy
@@ -53,8 +57,8 @@ is pruned; R2 evidence and revisions expire 32 days after upload, with shared ra
 files refreshed on reuse. Backfill is limited to history still available upstream;
 TGFTP's rotating files do not guarantee a full month. See [POLICY.md](POLICY.md).
 
-AWC and TGFTP are two NOAA delivery paths, not independent agencies. ECCC adds a
-second agency's distribution path; all can share the originating airport and WMO
+AWC, TGFTP and NWS API are three NOAA delivery paths, not independent agencies. ECCC and MET Norway add
+other distribution paths; all can share the originating airport and WMO
 transport. Only explicitly classified routine METARs enter selection. SPECI and
 ambiguous reports are retained and excluded. Read [POLICY.md](POLICY.md).
 
@@ -117,15 +121,22 @@ midnight. Both daily high and low markets share this airport/day evidence page.
 Programmatic pairing requires the market's actual airport and local observation
 date from its rules; do not infer a station from the city name alone. Construct
 `origin + '/?airport=' + ICAO + '&date=' + localDate`. This is a stable page address,
-not a frozen publication: it follows the latest retained revision while live, then the immutable midnight lock. The audit
+not a frozen publication: it follows the latest retained revision while live, then the immutable day lock. The audit
 manifest identifies the exact displayed snapshot. Unsupported, uncollected and
 expired days do not fall back to another day. Data remains subject to the existing
 30-day retention policy; download evidence for longer recordkeeping.
 
 See [the interface comparison](docs/INTERFACE_REVIEW.md) for the design rationale.
 
-V3 automatically locks days ending after deployment activation at their next local
-midnight, using the best available selected data without review or adjudication.
-Gaps and conflicts remain visible diagnostics and do not delay resolution. Reports
-accepted after cutoff cannot change a locked result. Historical days predating
-activation remain identified as historical; see [the lock contract](docs/FINALITY_DESIGN.md).
+V4 keeps the revision window open until the first eligible next-day reading is
+published here, capped at 23:59:00 America/New_York on the following calendar date.
+V3 locks and pre-activation history retain their original policy. New day rounding
+matches weather.gov's whole-degree display tie rule; raw temperature precision stays
+unchanged. NWS API reports without raw text or explicit classification cannot supply
+a reading. See [weather.gov compatibility](docs/WEATHER_GOV_COMPATIBILITY.md).
+
+MET Norway data are provided by the [Norwegian Meteorological Institute](https://api.met.no/)
+under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). We parse, filter
+and round reports under this site’s policy. Its [Tafmetar API](https://api.met.no/weatherapi/tafmetar/1.0/documentation)
+retains international observations for 24 hours and has an announced Norway-only
+successor. It is an additional fallback, not a long-term international archive.

@@ -126,6 +126,24 @@ def parse_awc(item):
     return row
 
 
+def parse_nws(feature):
+    """Only original raw METAR text supplies temperature and classification.
+
+    NWS also serves non-METAR observations. Neither decoded temperature nor an
+    expected reporting minute can establish that an observation is routine.
+    """
+    props = feature["properties"]
+    observed = parse_time(props["timestamp"])
+    raw = props.get("rawMessage")
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError("NWS observation has no raw METAR message")
+    row = parse_report(raw, observed, observed_at=props["timestamp"])
+    station = props.get("stationId") or props.get("station", "").rstrip("/").split("/")[-1]
+    if station != row["icao"]:
+        raise ValueError("Raw station disagrees with NWS station")
+    return row
+
+
 def parse_bulletin(text, reference):
     """Retain a bulletin's SA/SP classification and explicit correction sequence."""
     header = HEADER.search(text)

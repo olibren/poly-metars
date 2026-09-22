@@ -17,12 +17,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import {
-  ArrowDownToLine,
-  ChevronDown,
-  FileText,
-  ArrowUpRight,
-} from 'lucide-react';
+import { ArrowDownToLine, ChevronDown, FileText } from 'lucide-react';
 
 type Report = {
   id: string;
@@ -77,13 +72,21 @@ type Day = {
   policy_sha256: string;
   policy_version?: string;
   cutoff_at?: string;
+  deadline_at?: string;
+  lock_mode?: string;
+  rounding_mode?: string;
   source_order?: string[];
-  finalization?: { cutoff_at: string; accepted_at: Record<string, number> } | null;
+  finalization?: {
+    cutoff_at: string;
+    accepted_at: Record<string, number>;
+    reason?: string;
+  } | null;
 };
 type Index = {
   mode?: string;
   audit_download?: string;
   revisions?: Record<string, string>;
+  first_publications?: Record<string, { published_at?: string }>;
   stale_after_seconds?: number;
   disk_used_fraction?: number;
   base_path: string;
@@ -112,13 +115,19 @@ type Index = {
 };
 const temperature = (value: number | null | undefined, unit = 'C') =>
   value == null ? '—' : `${value}°${unit}`;
-const sourceTemperature = (value: number | null | undefined, unit = 'C') => {
+const sourceTemperature = (
+  value: number | null | undefined,
+  unit = 'C',
+  rounding?: string,
+) => {
   if (value == null) return '—';
   if (unit === 'F') {
     const fahrenheit = (value * 9) / 5 + 32;
-    // Match the policy: convert first, then round halves away from zero.
+    // Preserve the displayed day's pinned rounding policy.
     return temperature(
-      Math.sign(fahrenheit) * Math.round(Math.abs(fahrenheit)),
+      rounding === 'half_toward_positive'
+        ? Math.round(fahrenheit)
+        : Math.sign(fahrenheit) * Math.round(Math.abs(fahrenheit)),
       unit,
     );
   }
@@ -132,7 +141,6 @@ export default function Home() {
   const [routeError, setRouteError] = useState('');
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [method, setMethod] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [refreshError, setRefreshError] = useState('');
   useEffect(() => {
@@ -173,14 +181,23 @@ export default function Home() {
     if (!index) return;
     function readUrl() {
       try {
-        const selected = resolveSelection(window.location.search, index!.airports);
+        const selected = resolveSelection(
+          window.location.search,
+          index!.airports,
+        );
         setIcao(selected.icao);
         setDate(selected.date);
         setRouteError('');
         // Pin the initial local day, so a saved URL never rolls over at midnight.
-        window.history.replaceState(null, '', resolutionUrl(selected.icao, selected.date) + window.location.hash);
+        window.history.replaceState(
+          null,
+          '',
+          resolutionUrl(selected.icao, selected.date) + window.location.hash,
+        );
       } catch (error) {
-        setRouteError(error instanceof Error ? error.message : 'Invalid page URL.');
+        setRouteError(
+          error instanceof Error ? error.message : 'Invalid page URL.',
+        );
         setIcao('');
         setDate('');
       }
@@ -233,19 +250,44 @@ export default function Home() {
       });
     return () => controller.abort();
   }, [icao, date, dayUrl, routeError]);
-  const day = !routeError && loaded?.url === dayUrl &&
-    loaded.day.airport.icao === icao && loaded.day.date === date ? loaded.day : null;
+  const day =
+    !routeError &&
+    loaded?.url === dayUrl &&
+    loaded.day.airport.icao === icao &&
+    loaded.day.date === date
+      ? loaded.day
+      : null;
   const unavailable = index?.mode === 'live' && icao && date && !revision;
-  const pageError = routeError || error || (unavailable
-    ? `No published observations for ${icao} on ${date}. This date may be outside the retained history or not yet collected.`
-    : '');
+  const pageError =
+    routeError ||
+    error ||
+    (unavailable
+      ? `No published observations for ${icao} on ${date}. This date may be outside the retained history or not yet collected.`
+      : '');
   useEffect(() => {
     if (icao && date) document.title = `${icao} · ${date} — Poly METARs`;
     else document.title = 'Poly METARs — daily airport temperatures';
   }, [icao, date]);
   const locked = day?.summary.status === 'locked';
-  const finalizing = !!day?.cutoff_at && !locked && now >= Date.parse(day.cutoff_at);
-  const dayStatus = locked ? 'Locked' : finalizing ? 'Finalizing' : day?.cutoff_at ? 'Live' : 'Historical';
+  const nextDate = day
+    ? new Date(Date.parse(`${day.date}T00:00:00Z`) + 86400000)
+        .toISOString()
+        .slice(0, 10)
+    : '';
+  const publicationTriggered =
+    day?.lock_mode === 'next_day_publication' &&
+    !!index?.first_publications?.[`${nextDate}/${icao}`];
+  const finalizing =
+    !locked &&
+    (!!publicationTriggered ||
+      (!!day?.cutoff_at && now >= Date.parse(day.cutoff_at)));
+  const dayStatus = locked
+    ? 'Locked'
+    : finalizing
+      ? 'Finalizing'
+      : day?.cutoff_at
+        ? 'Live'
+        : 'Historical';
   const displayRows =
     day?.rows.map((row) => ({
       ...row,
@@ -256,13 +298,15 @@ export default function Home() {
             : 'missing'
           : row.status,
     })) || [];
-  const missingNow = locked ? day.summary.missing : displayRows.filter(
-    (row) =>
-      row.expected &&
-      !row.selected &&
-      new Date(row.observed_at).getTime() <=
-        now - (index?.policy.delivery_grace_minutes || 15) * 60000,
-  ).length;
+  const missingNow = locked
+    ? day.summary.missing
+    : displayRows.filter(
+        (row) =>
+          row.expected &&
+          !row.selected &&
+          new Date(row.observed_at).getTime() <=
+            now - (index?.policy.delivery_grace_minutes || 15) * 60000,
+      ).length;
   const publicationAge = index
     ? Math.max(
         0,
@@ -291,7 +335,14 @@ export default function Home() {
   const dataRoot = index?.base_path || '/data';
   const airport = day?.airport || index?.airports.find((a) => a.icao === icao);
   const sources = day?.source_order
-    ? day.source_order.map((id) => index?.sources.find((s) => s.id === id) || { id, label: id, agency: '' })
+    ? day.source_order.map(
+        (id) =>
+          index?.sources.find((s) => s.id === id) || {
+            id,
+            label: id,
+            agency: '',
+          },
+      )
     : index?.sources || [];
   return (
     <main>
@@ -299,61 +350,26 @@ export default function Home() {
         <Link className="brand" href="/">
           <span className="brand-mark">PM</span>Poly METARs
         </Link>
-        <span className="edition">OPEN OBSERVATION RECORD</span>
-        <a
-          download
-          href="https://github.com/olibren/poly-metars"
-          className="header-link"
-        >
-          Review the project <ArrowUpRight size={16} />
-        </a>
+        <span className="header-note">Daily airport temperatures</span>
       </header>
       <div className="page">
         <div className="intro">
           <div>
-            <div className="eyebrow">
-              DAILY AIRPORT TEMPERATURES
-            </div>
-            <h1>{airport ? `${airport.city} · ${icao}` : 'Airport observations'}</h1>
+            <h1>
+              {airport ? `${airport.city} · ${icao}` : 'Airport observations'}
+            </h1>
             <p>
-              {date ? `${date} · ${airport?.timezone || 'Local time'} · °${airport?.unit || 'C'}` : 'Select an airport and local date to view its readings.'}
+              {airport
+                ? `${airport.name} · ${airport.timezone}`
+                : 'Select an airport and date to view its readings.'}
             </p>
           </div>
-          <span className="review-badge">PROPOSED RESOLUTION SOURCE</span>
         </div>
-        <div className="notice">
-          This is a review candidate, not an adopted Polymarket resolution
-          source. Daily results use the best available selected readings.
-        </div>
-        {!locked && <section
-          className={`freshness ${stale ? 'freshness-stale' : ''}`}
-          aria-live="polite"
-        >
-          <b>
-            {!index
-              ? 'Connecting to collector…'
-              : stale
-                ? 'Data freshness needs attention'
-                : 'Observations up to date'}
-          </b>
-          <span>
-            {index
-              ? `Updated ${publicationAge}s ago`
-              : 'Loading the latest government observations.'}
-          </span>
-          {staleSources.length > 0 && (
-            <span>
-              Overdue or unsuccessful checks:{' '}
-              {staleSources.map((s) => s.label).join(', ')}
-            </span>
-          )}
-          {(index?.disk_used_fraction || 0) >= 0.8 && (
-            <span>
-              Collector storage is above 80% capacity; maintenance is needed.
-            </span>
-          )}
-          {(refreshError || error) && <span>{refreshError || error}</span>}
-        </section>}
+        {!locked && stale && index && (
+          <output className="freshness freshness-stale">
+            Updates are delayed. Showing the latest available readings.
+          </output>
+        )}
         <section className="toolbar" aria-label="Observation controls">
           <div className="control">
             <label htmlFor="airport-select" id="airport-label">
@@ -363,7 +379,10 @@ export default function Home() {
               value={icao}
               onValueChange={(v) => {
                 if (v) {
-                  const nextDate = date || resolveSelection(`?airport=${v}`, index?.airports || []).date;
+                  const nextDate =
+                    date ||
+                    resolveSelection(`?airport=${v}`, index?.airports || [])
+                      .date;
                   navigate(v, nextDate);
                 }
               }}
@@ -392,7 +411,7 @@ export default function Home() {
           </div>
           <div className="control">
             <label htmlFor="date-select" id="date-label">
-              Local observation date
+              Date (local)
             </label>
             <Select
               value={date}
@@ -410,24 +429,21 @@ export default function Home() {
                 <SelectValue placeholder="Select date" />
               </SelectTrigger>
               <SelectContent>
-                {[...new Set([date, ...(index?.dates || [])])].filter(Boolean).sort().reverse().map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {d}
-                  </SelectItem>
-                ))}
+                {[...new Set([date, ...(index?.dates || [])])]
+                  .filter(Boolean)
+                  .sort()
+                  .reverse()
+                  .map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="toolbar-note">
-            {airport?.name}
-            <br />
-            <span>
-              {airport?.timezone} · Market unit °{airport?.unit}
-            </span>
-          </div>
           {day && (
             <a
-              className="download"
+              className="download toolbar-download"
               href={
                 index?.mode === 'live'
                   ? `${revisionRoot}/day.csv`
@@ -439,118 +455,58 @@ export default function Home() {
             </a>
           )}
         </section>
-        {icao && date && (
-          <div className="day-links">
-            <a href={resolutionUrl(icao, date)}>Link to this airport &amp; day</a>
-            <a href={`https://www.weather.gov/wrh/timeseries?site=${icao.toLowerCase()}`} target="_blank" rel="noreferrer">NWS station viewer ↗</a>
-          </div>
-        )}
-        <section className="hierarchy">
-          <button onClick={() => setMethod(!method)} aria-expanded={method}>
-            How selection works <ChevronDown size={16} />
-          </button>
-        </section>
-        {method && (
-          <section className="method">
-            <h2>How the reading is selected</h2>
-            <p>Source priority: {sources.map((source) => source.label).join(' → ')}.</p>
-            <p>
-              For each airport and observation time, use the first source in the
-              published hierarchy with an eligible routine METAR. Keep every
-              other source alongside it. A missing higher-priority report
-              permits fallback; a disagreement is flagged and the hierarchy
-              still determines the selected reading.
-            </p>
-            <p>
-              Explicit corrections supersede originals within a source.{' '}
-              {day?.policy_version !== 'routine-metar-v1'
-                ? 'Within a correction rank, the latest supported per-report source receipt time wins. Equal-time or unorderable conflicts block selection; download order never breaks a tie.'
-                : 'Equally ranked, conflicting revisions from the highest available source block selection.'}{' '}
-              SPECI, unclassified reports, missing temperatures
-              and malformed reports do not enter the routine-only calculation.
-              Daily highs and lows use the airport’s local calendar day.
-            </p>
-            <p>
-              NOAA AWC and TGFTP are two delivery paths from one agency. ECCC is
-              a second agency. No majority vote or temperature averaging is
-              used. Days covered by the midnight policy lock automatically using
-              reports durably accepted before the next local midnight. Missing
-              slots and ambiguous observations do not delay the lock or trigger
-              review. Later corrections and backfills cannot change a locked day.
-              Earlier historical days predate the locking policy.
-            </p>
-            <a download href="/POLICY.md">
-              Read the full policy
-            </a>{' '}
-            {index?.mode !== 'live' && <> · <a href={`${dataRoot}/policy.json`}>Machine-readable policy</a></>} ·{' '}
-            {day && <a
-              href={
-                index?.mode === 'live'
-                  ? `${revisionRoot}/audit.json`
-                  : `${dataRoot}/manifest.json`
-              }
-            >
-              Evidence manifest
-            </a>}
-          </section>
-        )}
         {day && (
           <>
             <output className={`day-status ${locked ? 'day-locked' : ''}`}>
               <strong>{dayStatus}</strong>
-              <span>{locked
-                ? `Cutoff: local midnight · ${day.cutoff_at} · Later reports cannot change this result.`
-                : finalizing
-                  ? 'Midnight cutoff reached. Waiting for publication of the fixed result; later reports are excluded.'
-                  : day.cutoff_at
-                    ? `Locks at the next local midnight · ${day.cutoff_at}`
-                    : 'This day predates midnight locking.'}</span>
+              <span>
+                {locked
+                  ? day.lock_mode === 'next_day_publication'
+                    ? 'Final result · revisions are closed.'
+                    : 'Final result · frozen under the midnight policy.'
+                  : finalizing
+                    ? 'Cutoff reached · publishing the fixed result.'
+                    : day.cutoff_at
+                      ? day.lock_mode === 'next_day_publication'
+                        ? 'Updates until the first eligible next-day reading, or 11:59 PM ET the following date.'
+                        : 'Updates throughout the day · freezes at local midnight.'
+                      : 'Recorded before midnight locking was introduced.'}
+              </span>
+              {!locked && !finalizing && index && (
+                <span className="updated-time">
+                  Updated{' '}
+                  {publicationAge < 60
+                    ? 'just now'
+                    : `${Math.floor(publicationAge / 60)} min ago`}
+                </span>
+              )}
             </output>
             {locked && day.summary.high == null && (
-              <p>No usable temperature readings were available at cutoff. No numeric result.</p>
+              <p>
+                No usable temperature readings were available at cutoff. No
+                numeric result.
+              </p>
             )}
             <section className="summary" aria-label="Daily summary">
               <div>
-                <span>Observed high · {dayStatus.toLowerCase()}</span>
+                <span>Day’s high</span>
                 <strong>{temperature(day.summary.high, airport?.unit)}</strong>
-                <small>Selected routine METARs · local day</small>
               </div>
               <div>
-                <span>Observed low · {dayStatus.toLowerCase()}</span>
+                <span>Day’s low</span>
                 <strong>{temperature(day.summary.low, airport?.unit)}</strong>
-                <small>Selected routine METARs · local day</small>
-              </div>
-              <div>
-                <span>Expected slots received</span>
-                <strong>
-                  {day.summary.received}
-                  <em> / {day.summary.expected}</em>
-                </strong>
-                <small>
-                  {missingNow} elapsed slots without a selected reading
-                </small>
-              </div>
-              <div>
-                <span>Source disagreements</span>
-                <strong className={day.summary.conflicts ? 'warning-text' : ''}>
-                  {day.summary.conflicts}
-                </strong>
-                <small>Informational · no review required</small>
               </div>
             </section>
             <div className="table-caption">
               <div>
-                <h2>
-                  METAR observations <span>{date}</span>
-                </h2>
+                <h2>Temperature readings</h2>
                 <p>
-                  All routine observation times · source temperatures in{' '}
+                  Local time · {date} ·{' '}
                   {airport?.unit === 'F' ? 'whole degrees °F' : '°C'}
                 </p>
-
               </div>
               <span className="secondary">
-                Expand a row to inspect the original reports.
+                Select a row’s METARs to see the exact reports.
               </span>
             </div>
             <div className="ledger-table">
@@ -560,18 +516,13 @@ export default function Home() {
                     <TableHead>
                       Local time<small>UTC below</small>
                     </TableHead>
-                    {sources.map((s, i) => (
-                      <TableHead key={s.id}>
-                        <span className="rank">{i + 1}</span>
-                        {s.label}
-                        <small>{s.agency}</small>
-                      </TableHead>
+                    {sources.map((s) => (
+                      <TableHead key={s.id}>{s.label}</TableHead>
                     ))}
-                    <TableHead className="selected-column">
-                      Selected reading
-                      <small>Proposed resolution input · °{airport?.unit}</small>
+                    <TableHead className="selected-column">Selected</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Original reports</span>
                     </TableHead>
-                    <TableHead>Record</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -590,6 +541,7 @@ export default function Home() {
                                 {sourceTemperature(
                                   v?.report?.temperature_c,
                                   airport?.unit,
+                                  day.rounding_mode,
                                 )}
                               </span>
                               <small>
@@ -598,10 +550,8 @@ export default function Home() {
                                   : v?.report
                                     ? v.report.correction
                                       ? 'Corrected report'
-                                      : 'Routine METAR'
-                                    : row.status === 'pending'
-                                      ? 'Scheduled later'
-                                      : 'Not captured'}
+                                      : ''
+                                    : ''}
                               </small>
                             </TableCell>
                           );
@@ -611,6 +561,7 @@ export default function Home() {
                             {sourceTemperature(
                               row.selected?.temperature_c,
                               airport?.unit,
+                              day.rounding_mode,
                             )}
                           </strong>
                           <small>
@@ -628,6 +579,7 @@ export default function Home() {
                         <TableCell>
                           <button
                             className={`record-button ${row.conflict || row.status === 'blocked' ? 'warning-text' : ''}`}
+                            aria-label={`METAR reports at ${row.local_time}: ${row.status.replaceAll('_', ' ')}`}
                             aria-expanded={expanded === row.observed_at}
                             onClick={() =>
                               setExpanded(
@@ -642,8 +594,8 @@ export default function Home() {
                               : row.status === 'missing'
                                 ? 'Not captured'
                                 : row.status === 'blocked'
-                                ? 'Ambiguous versions'
-                                : row.status.replaceAll('_', ' ')}
+                                  ? 'Ambiguous versions'
+                                  : 'METARs'}
                             <ChevronDown size={15} />
                           </button>
                         </TableCell>
@@ -708,118 +660,213 @@ export default function Home() {
                 </TableBody>
               </Table>
             </div>
-            <details className="excluded">
-              <summary>
-                Excluded reports ({day.excluded.length}) — retained for audit
-              </summary>
-              {day.excluded.map((r) => (
-                <div className="report" key={r.id}>
-                  <b>
-                    {r.source} · {r.observed_at} · {r.reason}
-                  </b>
-                  <code>{r.raw}</code>
-                  <a href={`${dataRoot}/evidence/${r.body_sha256}.txt`}>
-                    Stored response
-                  </a>
-                </div>
-              ))}
-            </details>
           </>
         )}
         {!day && (
           <div className="empty-state" aria-live="polite">
             <FileText size={28} />
-            <h2>{pageError || refreshError || 'Loading the observation record…'}</h2>
+            <h2>
+              {pageError || refreshError || 'Loading the observation record…'}
+            </h2>
             {pageError && (
               <p>
-                No readings from another airport or date are substituted. Choose an airport and date above.
+                No readings from another airport or date are substituted. Choose
+                an airport and date above.
               </p>
             )}
           </div>
         )}
-        {!locked && <details className="collection">
-          <summary>Collection &amp; audit details</summary>
-          <p>
-            Published {index?.generated_at || '—'}. Live checks and historical
-            recovery run independently. Missing cells mean we have not captured
-            a report; they do not prove a source never published it.
-          </p>
-          <div className="collection-grid">
-            {index?.collection.map((s, i) => (
-              <div key={`${s.source}-${i}`}>
-                <b>{sources.find((source) => source.id === s.source)?.label || s.source}</b>
-                <span>
-                  {s.status} · {s.scope ? 'Source retrieval checks' : `${s.reports} new reports in latest sweep`}
-                </span>
-                <small>
-                  {s.scope || `${s.airports?.length || '—'} airports · ${s.dates?.join(', ') || ''}`}
-                  <br />
-                  Last attempt {s.finished_at || '—'}
-                  <br />
-                  Last successful check{' '}
-                  {s.last_success_at || 'Not yet completed'}
-                </small>
-                {s.errors.length > 0 && (
-                  <details>
-                    <summary>{s.errors.length} collection issues</summary>
-                    {s.errors.map((e, j) => (
-                      <p key={j}>{e}</p>
-                    ))}
-                  </details>
-                )}
-              </div>
-            ))}
-          </div>
-          <p>{index?.catalog_note}</p>
-          {!!index?.rejected_count && (
+        <div className="supporting-details">
+          <details className="method">
+            <summary>How temperatures are determined</summary>
             <p>
-              <a download href={`${dataRoot}/rejected.jsonl`}>
-                {index.rejected_count} report parsing failures retained for
-                review
-              </a>
-              . These reports cannot set an extreme.
+              Source priority:{' '}
+              {sources.map((source) => source.label).join(' → ')}.
             </p>
-          )}
-        </details>}
-        <footer>
-          <span>Poly METARs · {day?.policy_version || index?.policy.version || 'policy-v1'}</span>
-          <div>
+            <p>
+              For each airport and observation time, use the first source in the
+              published hierarchy with an eligible routine METAR. Keep every
+              other source alongside it. A missing higher-priority report
+              permits fallback; a disagreement is flagged and the hierarchy
+              still determines the selected reading.
+            </p>
+            <p>
+              Explicit corrections supersede originals within a source.{' '}
+              {day?.policy_version !== 'routine-metar-v1'
+                ? 'Within a correction rank, the latest supported per-report source receipt time wins. Equal-time or unorderable conflicts block selection; download order never breaks a tie.'
+                : 'Equally ranked, conflicting revisions from the highest available source block selection.'}{' '}
+              SPECI, unclassified reports, missing temperatures and malformed
+              reports do not enter the routine-only calculation. Daily highs and
+              lows use the airport’s local calendar day.
+            </p>
+            <p>
+              NOAA AWC, TGFTP and NWS API are delivery paths from one agency.
+              ECCC and MET Norway add other distribution paths. No majority vote or temperature averaging
+              is used. Current-policy days freeze when this site first publishes
+              an eligible selected routine reading for the next local date, or
+              at 11:59 PM ET on that following calendar date, whichever comes
+              first. Reports must be durably accepted before cutoff. Earlier
+              days retain their original policy. Missing slots do not require
+              review. Later corrections cannot change a locked day. NWS API
+              reports without explicit routine classification are excluded.
+            </p>
+            <p>
+              MET Norway data: <a href="https://api.met.no/">Norwegian Meteorological Institute</a>,{' '}
+              <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+              We parse, filter and round these reports under this site’s policy.
+            </p>
             <a download href="/POLICY.md">
-              Resolution policy
-            </a>
-            <a download href={day ? dayUrl : '/data/index.json'}>
-              {day ? 'Day JSON' : 'JSON data'}
-            </a>
-            {day && <a
-              href={
-                index?.mode === 'live'
-                  ? `${revisionRoot}/audit.json`
-                  : `${dataRoot}/manifest.json`
-              }
-            >
-              Audit manifest
-            </a>}
-            {day && <a
-              download={index?.audit_download !== 'manifest-and-evidence'}
-              href={
-                index?.audit_download === 'manifest-and-evidence'
-                  ? '/AUDIT.md'
-                  : index?.mode === 'live'
-                  ? `${revisionRoot}/bundle.zip`
-                  : `${dataRoot}/bundle.zip`
-              }
-            >
-              {index?.audit_download === 'manifest-and-evidence'
-                ? 'Download and verify evidence'
-                : 'Download audit bundle'}
-            </a>}
-            <a href="/source.zip" download>
-              Download source
-            </a>
-            <a download href="/README.md">
-              Repository guide
-            </a>
-          </div>
+              Read the full policy
+            </a>{' '}
+            {index?.mode !== 'live' && (
+              <>
+                {' '}
+                ·{' '}
+                <a href={`${dataRoot}/policy.json`}>Machine-readable policy</a>
+              </>
+            )}{' '}
+            ·{' '}
+            {day && (
+              <a
+                href={
+                  index?.mode === 'live'
+                    ? `${revisionRoot}/audit.json`
+                    : `${dataRoot}/manifest.json`
+                }
+              >
+                Evidence manifest
+              </a>
+            )}
+          </details>
+          <details className="audit-details">
+            <summary>Data &amp; audit details</summary>
+            {day && (
+              <p>
+                {day.summary.received} of {day.summary.expected} expected
+                readings received · {missingNow} elapsed slots missing ·{' '}
+                {day.summary.conflicts} source disagreements. Daily results use
+                the best available selected readings.
+              </p>
+            )}
+            {day?.cutoff_at && (
+              <p>
+                {locked
+                  ? 'Recorded cutoff'
+                  : day.lock_mode === 'next_day_publication'
+                    ? 'Latest cutoff (ET deadline)'
+                    : 'Midnight cutoff'}
+                : {day.cutoff_at}
+              </p>
+            )}
+            {day && (
+              <>
+                <details className="excluded">
+                  <summary>
+                    Excluded reports ({day.excluded.length}) — retained for
+                    audit
+                  </summary>
+                  {day.excluded.map((r) => (
+                    <div className="report" key={r.id}>
+                      <b>
+                        {r.source} · {r.observed_at} · {r.reason}
+                      </b>
+                      <code>{r.raw}</code>
+                      <a href={`${dataRoot}/evidence/${r.body_sha256}.txt`}>
+                        Stored response
+                      </a>
+                    </div>
+                  ))}
+                </details>
+              </>
+            )}
+            {!locked && (
+              <details className="collection">
+                <summary>Source availability</summary>
+                <p>
+                  Published {index?.generated_at || '—'}. Live checks and
+                  historical recovery run independently. Missing cells mean we
+                  have not captured a report; they do not prove a source never
+                  published it.
+                </p>
+                <div className="collection-grid">
+                  {index?.collection.map((s, i) => (
+                    <div key={`${s.source}-${i}`}>
+                      <b>
+                        {sources.find((source) => source.id === s.source)
+                          ?.label || s.source}
+                      </b>
+                      <span>
+                        {s.status} ·{' '}
+                        {s.scope
+                          ? 'Source retrieval checks'
+                          : `${s.reports} new reports in latest sweep`}
+                      </span>
+                      <small>
+                        {s.scope ||
+                          `${s.airports?.length || '—'} airports · ${s.dates?.join(', ') || ''}`}
+                        <br />
+                        Last attempt {s.finished_at || '—'}
+                        <br />
+                        Last successful check{' '}
+                        {s.last_success_at || 'Not yet completed'}
+                      </small>
+                      {s.errors.length > 0 && (
+                        <details>
+                          <summary>{s.errors.length} collection issues</summary>
+                          {s.errors.map((e, j) => (
+                            <p key={j}>{e}</p>
+                          ))}
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p>{index?.catalog_note}</p>
+                {!!index?.rejected_count && (
+                  <p>
+                    <a download href={`${dataRoot}/rejected.jsonl`}>
+                      {index.rejected_count} report parsing failures retained
+                      for review
+                    </a>
+                    . These reports cannot set an extreme.
+                  </p>
+                )}
+              </details>
+            )}
+            <div className="audit-links">
+              <a href={day ? dayUrl : '/data/index.json'}>JSON data</a>
+              {day && (
+                <a
+                  href={
+                    index?.mode === 'live'
+                      ? `${revisionRoot}/audit.json`
+                      : `${dataRoot}/manifest.json`
+                  }
+                >
+                  Evidence manifest
+                </a>
+              )}
+              <a download href="/AUDIT.md">
+                Download and verify evidence
+              </a>
+              <a href="https://github.com/olibren/poly-metars">Source code</a>
+              {icao && (
+                <a
+                  href={`https://www.weather.gov/wrh/timeseries?site=${icao.toLowerCase()}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  NWS station viewer ↗
+                </a>
+              )}
+            </div>
+          </details>
+        </div>
+        <footer>
+          <span>Proposed resolution source · not adopted by Polymarket</span>
+          <a download href="/POLICY.md">
+            Resolution policy
+          </a>
         </footer>
       </div>
     </main>

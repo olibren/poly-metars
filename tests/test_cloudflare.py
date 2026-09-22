@@ -99,6 +99,8 @@ class Bucket:
             return None
         self.counter += 1
         self.objects[key] = StoredObject(body.encode() if isinstance(body, str) else body, str(self.counter))
+        if hasattr(self, "clock"):
+            self.objects[key].uploaded = self.clock()
         return self.objects[key]
 
 
@@ -117,6 +119,7 @@ class CloudflareTests(unittest.IsolatedAsyncioTestCase):
         airports = json.loads((ROOT / "config/airports.json").read_text())
         self.airport = next(a for a in airports if a["icao"] == "EGLC")
         settings = {"airports": [self.airport], "policy": json.loads((ROOT / "config/policy.json").read_text()),
+                    "midnight_policy": json.loads((ROOT / "config/policies/routine-metar-v3.json").read_text()),
                     "legacy_policy": json.loads((ROOT / "config/policies/routine-metar-v2.json").read_text()),
                     "retention": json.loads((ROOT / "config/retention.json").read_text()),
                     "sources": json.loads((ROOT / "config/sources.json").read_text()), "engine_hashes": {}}
@@ -150,8 +153,10 @@ class CloudflareTests(unittest.IsolatedAsyncioTestCase):
         self.module.now_utc = lambda:self.now
         self.worker = self.module.Default()
         self.worker.env = SimpleNamespace(DB=Database(), ARCHIVE=Bucket(), LIVE=Queue(), RECOVERY=Queue())
+        self.worker.env.ARCHIVE.clock = lambda:self.now
         self.worker.env.DB.connection.create_function("unixepoch", 1, lambda _: int(self.now.timestamp()))
         await self.worker.statement("UPDATE state SET value=? WHERE name='midnight_lock_started_at'", str(int(self.now.timestamp()))).run()
+        await self.worker.statement("UPDATE state SET value=? WHERE name='next_day_lock_started_at'", str(int(self.now.timestamp()))).run()
         self.sleep_patch = patch.object(self.module.asyncio, "sleep", new=AsyncMock())
         self.sleep_patch.start()
         self.task = self.module.job("noaa_awc", "live", "report",

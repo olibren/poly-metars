@@ -13,8 +13,10 @@ memberships. No developer-managed server or external service is required.
 Before adoption, review the station mapping, routine-METAR restriction, integer
 versus precise temperatures, timezone boundaries, rounding, correction handling,
 source hierarchy, conflict handling and missing-data rules in POLICY.md. Establish
-an explicit finalization and dispute policy; the current code intentionally keeps
-days provisional. Freeze/version the applicable policy before the market opens.
+an explicit finalization and dispute policy; v4 closes revisions on the first eligible
+next-day publication or the following date’s ET deadline. Review the differences
+from weather.gov in WEATHER_GOV_COMPATIBILITY.md. Freeze/version the applicable
+policy before the market opens.
 
 Replay independently downloaded day bundles and review collection behavior through
 real upstream outages, queue retries and delayed corrections. The repository tests

@@ -13,6 +13,7 @@ for name in MODULES:
 config = {name: json.loads((ROOT / "config" / f"{name}.json").read_text())
           for name in ("airports", "policy", "sources", "retention")}
 config["legacy_policy"] = json.loads((ROOT / "config/policies/routine-metar-v2.json").read_text())
+config["midnight_policy"] = json.loads((ROOT / "config/policies/routine-metar-v3.json").read_text())
 files = [*(ROOT / "ledger").glob("*.py"), *(ROOT / "cloudflare/src").glob("*.py")]
 config["engine_hashes"] = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in sorted(files) if p.name != "settings.py"}

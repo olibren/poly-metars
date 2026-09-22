@@ -7,6 +7,7 @@ Raw R2 objects and receipts are written before normalized records are committed.
 import asyncio
 import csv
 from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 import io
 import json
 from urllib.parse import urljoin, urlparse
@@ -20,21 +21,22 @@ from workers import WorkerEntrypoint, Response
 from ledger.metar import UTC, iso, parse_time, parse_awc
 from ledger.evidence import decode, bulletin_reference
 from ledger.sources import Links, collective_listing, eccc_live_links
-from ledger.policy import daily, day_bounds
-from planner import canonical, digest, job, live_jobs, recovery_jobs, planning_jobs, recent_dates, retained_dates, retention_start, TGFTP_HISTORY
+from ledger.policy import daily, day_bounds, resolution_deadline
+from planner import canonical, digest, job, live_jobs, recovery_jobs, nws_recovery_jobs, planning_jobs, recent_dates, retained_dates, retention_start, TGFTP_HISTORY
 from settings import SETTINGS
 
 MAX_BODY = 8_000_000
-GOVERNMENT_HOSTS = {"aviationweather.gov", "tgftp.nws.noaa.gov", "dd.weather.gc.ca", "dd.meteo.gc.ca"}
+GOVERNMENT_HOSTS = {"aviationweather.gov", "tgftp.nws.noaa.gov", "api.weather.gov", "dd.weather.gc.ca", "dd.meteo.gc.ca", "api.met.no"}
 IMMUTABLE = "public, max-age=86400, immutable"
 LATEST = "public, max-age=0, s-maxage=10, must-revalidate"
 RESERVATION_SECONDS = 900
 # Shared across both queues and all isolates, including retries and alternate hosts.
-REQUEST_SPACING_MS = {"noaa_awc": 1000, "eccc": 1100, "noaa_tgftp": 250}
+REQUEST_SPACING_MS = {"noaa_awc": 1000, "eccc": 1100, "noaa_tgftp": 250, "noaa_nws": 1000, "met_no": 1000}
 # Outstanding messages per class, not an unbounded number added every minute.
 RECOVERY_LANES = (("kind='plan'", 8),
                   ("source='noaa_awc' AND kind!='plan'", 60),
                   ("source='noaa_tgftp' AND kind!='plan'", 20),
+                  ("source='noaa_nws' AND kind!='plan'", 20),
                   ("source='eccc' AND kind='directory'", 20),
                   ("source='eccc' AND kind='report'", 40))
 
@@ -244,14 +246,34 @@ class Default(WorkerEntrypoint):
 
     async def response(self, source, url, mode="live"):
         check_url(url)
+        request_headers = {"User-Agent": "PolyMETARs/0.3 (+https://github.com/olibren/poly-metars)", "Accept": "*/*"}
+        cache, cached = None, None
+        cache_key = "met_no_cache:"+digest(url.encode())
+        if source == "met_no":
+            value = await self.statement("SELECT value FROM state WHERE name=?", cache_key).first("value")
+            if value:
+                cache = json.loads(value)
+                saved = await self.env.ARCHIVE.get(f"receipts/{cache['receipt_id']}.json")
+                if saved:
+                    original = json.loads(await saved.text())
+                    obj = await self.env.ARCHIVE.get(f"evidence/{original['body_sha256']}.txt")
+                    if obj:
+                        saved_body = (await obj.text()).encode()
+                        if digest(saved_body) == original["body_sha256"]:
+                            cached = (saved_body, original)
+            if cached:
+                if cache["expires_at"] > now_utc().timestamp():
+                    return cached
+                if cache.get("last_modified"):
+                    request_headers["If-Modified-Since"] = cache["last_modified"]
         await self.pace(source, mode)
         status, headers, body, error = 0, {}, b"", None
         try:
             response = await js.fetch(url, js_object({"redirect": "manual",
-              "headers": {"User-Agent": "PolyMETARs/0.3 (+https://github.com/olibren/poly-metars)", "Accept": "*/*"},
+              "headers": request_headers,
               "signal": js.AbortSignal.timeout(20000)}))
             status = int(response.status)
-            for name in ("date", "last-modified", "etag", "content-type"):
+            for name in ("date", "last-modified", "etag", "content-type", "expires"):
                 value = response.headers.get(name)
                 if value:
                     headers[name] = value
@@ -268,7 +290,7 @@ class Default(WorkerEntrypoint):
                     raise ValueError("Response exceeds 8 MB limit; no partial body accepted")
                 chunks.append(chunk)
             body = b"".join(chunks)
-            if status not in (200, 204, 404):
+            if status not in (200, 204, 404) and not (source == "met_no" and status == 304 and cached):
                 error = f"HTTP {status}"
         except Exception as exc:
             status, body, error = 0, b"", str(exc)
@@ -289,13 +311,31 @@ class Default(WorkerEntrypoint):
                              receipt["id"], receipt["fetched_at"], canonical(receipt).decode()).run()
         if error:
             raise RuntimeError(error)
+        if source == "met_no" and status in (200, 304):
+            expires = now_utc().timestamp()
+            if headers.get("expires"):
+                try:
+                    expires = parsedate_to_datetime(headers["expires"]).timestamp()
+                except (ValueError, TypeError, OverflowError):
+                    pass
+            # Keep the original 200 receipt on 304, including after an ingest
+            # failure. Never invent a new first receipt for cached observations.
+            state = {"receipt_id": cached[1]["id"] if status == 304 else receipt["id"],
+                     "expires_at": expires,
+                     "last_modified": headers.get("last-modified") or (cache.get("last_modified") if status == 304 else None)}
+            await self.statement("INSERT INTO state(name,value) VALUES(?,?) ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+                                 cache_key, canonical(state).decode()).run()
+            if status == 304:
+                return cached
         return body, receipt
 
     async def collect(self, task, mode):
         source, url = task["source"], task["url"]
         now = now_utc()
         if task["kind"] == "plan":
-            if source == "noaa_awc":
+            if source == "noaa_nws":
+                await self.upsert_tasks(nws_recovery_jobs(SETTINGS["airports"], now))
+            elif source == "noaa_awc":
                 jobs = recovery_jobs(SETTINGS["airports"], now, now+timedelta(hours=1),
                                      awc_offsets=range(SETTINGS["retention"]["days"]+2))
                 await self.upsert_tasks(j for j in jobs if j["source"] == "noaa_awc")
@@ -356,7 +396,17 @@ class Default(WorkerEntrypoint):
                 except (ValueError, KeyError) as error:
                     parsed.append({"icao": item.get("icaoId"), "raw": item.get("rawOb"), "parse_error": str(error)})
         else:
-            parsed = decode(body, receipt)
+            parsed = list(decode(body, receipt))
+        if source == "noaa_nws" and mode == "recovery":
+            next_url = json.loads(body).get("pagination", {}).get("next")
+            if next_url:
+                check_url(next_url)
+                current, target = urlparse(url), urlparse(next_url)
+                page = task.get("page", 0)+1
+                if target.hostname != "api.weather.gov" or target.path != current.path or page > 8:
+                    raise ValueError("Invalid or excessive NWS pagination")
+                await self.upsert_tasks([job(source, "recovery", "report", next_url, 900,
+                                            now+timedelta(hours=6), page=page, once=True)])
         statements, record_ids = [], []
         for row in parsed:
             if row["icao"] not in allowed:
@@ -401,7 +451,21 @@ class Default(WorkerEntrypoint):
               self.statement("UPDATE reports SET archived=1,accepted_at=COALESCE(accepted_at,unixepoch('now')) WHERE id=?", row["id"])])
         await self.batch(statements)
 
-    async def publish(self, now):
+    async def persist_first_publications(self, first, published_at):
+        """Run only for a successfully committed index (or its recovery).
+
+        The index is the publication commit. Saving its first-reading receipts
+        before replacing it makes interrupted finalization restartable.
+        """
+        for key, item in list(first.items()):
+            if "published_at" not in item:
+                item = {**item, "published_at": iso(published_at)}
+                path = f"first-publications/{key}.json"
+                await self.put(path, canonical(item))
+                stored = await self.env.ARCHIVE.get(path)
+                first[key] = json.loads(await stored.text())
+
+    async def publish(self, now, followup=False):
         now = max(now, now_utc())
         previous_object = await self.env.ARCHIVE.get("index.json")
         previous = json.loads(await previous_object.text()) if previous_object else {}
@@ -416,11 +480,26 @@ class Default(WorkerEntrypoint):
             await self.put("locking.json", canonical({"started_at": int(activated)}))
             activation_object = await self.env.ARCHIVE.get("locking.json")
         activation = json.loads(await activation_object.text())["started_at"]
+        next_activation = None
+        if policy.get("lock_mode") == "next_day_publication":
+            next_object = await self.env.ARCHIVE.get("next-day-locking.json")
+            if not next_object:
+                value = await self.statement("SELECT value FROM state WHERE name='next_day_lock_started_at'").first("value")
+                if value is None:
+                    raise ValueError("Apply the next-day-lock migration before publishing")
+                await self.put("next-day-locking.json", canonical({"started_at": int(value)}))
+                next_object = await self.env.ARCHIVE.get("next-day-locking.json")
+            next_activation = json.loads(await next_object.text())["started_at"]
         retained = {a["icao"]: set(retained_dates(a, now, SETTINGS["retention"]["days"])) for a in airports}
         revisions = {k: v for k, v in previous.get("revisions", {}).items()
                      if k.split("/")[0] in retained.get(k.split("/")[1], set())}
         locks = {k: v for k, v in previous.get("locks", {}).items()
                  if k.split("/")[0] in retained.get(k.split("/")[1], set())}
+        first = {k: v for k, v in previous.get("first_publications", {}).items()
+                 if k.split("/")[0] in retained.get(k.split("/")[1], set())}
+        if previous_object:
+            await self.persist_first_publications(first, previous_object.uploaded)
+        new_first = False
         dates = recent_dates(airports, now)
         # Drain live changes first, then a bounded batch of recovered days.
         dirty = await self.rows("SELECT * FROM dirty ORDER BY date DESC,icao LIMIT 100")
@@ -434,6 +513,7 @@ class Default(WorkerEntrypoint):
                    if d["date"] not in retained.get(d["icao"], set())}
 
         async def publish_airport(airport):
+            nonlocal new_first
             async with gate:
                 # Include retained prior days after outages, even if they have no dirty reports.
                 # Completed lock pointers are small; no evidence scan is needed for them.
@@ -451,8 +531,23 @@ class Default(WorkerEntrypoint):
                         continue
                     start, end = day_bounds(date, airport["timezone"])
                     day_now = max(now, now_utc())
-                    governed = policy.get("lock_mode") == "local_midnight" and end.timestamp() > activation
-                    closing = governed and day_now >= end
+                    governed = end.timestamp() > activation
+                    next_governed = next_activation is not None and end.timestamp() > next_activation
+                    day_policy = (policy if next_governed or (governed and next_activation is None)
+                                  else SETTINGS["midnight_policy"] if governed else SETTINGS["legacy_policy"])
+                    cutoff, trigger, trigger_manifest = end, None, None
+                    if next_governed:
+                        cutoff = resolution_deadline(date)
+                        next_date = (datetime.fromisoformat(date)+timedelta(days=1)).date().isoformat()
+                        next_key = f"{next_date}/{airport['icao']}"
+                        candidate = first.get(next_key)
+                        if not candidate or "published_at" not in candidate:
+                            saved = await self.env.ARCHIVE.get(f"first-publications/{next_key}.json")
+                            candidate = json.loads(await saved.text()) if saved else None
+                        if candidate and parse_time(candidate["published_at"]) < cutoff:
+                            trigger = candidate
+                            cutoff = parse_time(trigger["published_at"])
+                    closing = governed and day_now >= cutoff
                     if closing:
                         if closing_work >= 2:
                             continue  # Resume the backlog next tick without delaying today's publication.
@@ -464,18 +559,26 @@ class Default(WorkerEntrypoint):
                         locks[day_key] = json.loads(await existing_lock.text())
                         revisions[day_key] = locks[day_key]["revision"]
                         continue
-                    day_policy = policy if governed else SETTINGS["legacy_policy"]
                     day_policy_hash = digest(canonical(day_policy))
-                    if not closing and same_engine and day_key in revisions and (airport["icao"], date) not in changed:
+                    needs_first = next_activation is not None and start.timestamp() > next_activation and day_key not in first
+                    if not closing and not needs_first and same_engine and day_key in revisions and (airport["icao"], date) not in changed:
                         continue
                     rows = await self.rows("SELECT payload,accepted_at FROM reports WHERE archived=1 AND icao=? AND observed_at>=? AND observed_at<? ORDER BY observed_at,id",
                                            airport["icao"], iso(start), iso(end))
                     if governed:
-                        rows = [r for r in rows if r["accepted_at"] is not None and r["accepted_at"] < end.timestamp()
-                                and parse_time(json.loads(r["payload"])["fetched_at"]) < end]
+                        rows = [r for r in rows if r["accepted_at"] is not None and r["accepted_at"] < cutoff.timestamp()
+                                and parse_time(json.loads(r["payload"])["fetched_at"]) < cutoff]
                     reports = [json.loads(r["payload"]) for r in rows]
-                    finalization = {"cutoff_at": iso(end),
+                    finalization = {"cutoff_at": iso(cutoff),
                                     "accepted_at": {json.loads(r["payload"])["id"]: int(r["accepted_at"]) for r in rows}} if closing else None
+                    if closing and next_governed:
+                        finalization.update({"deadline_at": iso(resolution_deadline(date)),
+                                             "reason": "next_day_publication" if trigger else "deadline", "trigger": trigger})
+                        if trigger:
+                            obj = await self.env.ARCHIVE.get(f"revisions/{trigger['revision']}/audit.json")
+                            if not obj:
+                                raise ValueError("Missing first-publication evidence")
+                            trigger_manifest = json.loads(await obj.text())
                     identity = {"date": date, "icao": airport["icao"], "report_ids": sorted(r["id"] for r in reports),
                                 "policy_sha256": day_policy_hash, "registry_sha256": registry_hash,
                                 "engine_sha256": SETTINGS["engine_hashes"]}
@@ -483,7 +586,7 @@ class Default(WorkerEntrypoint):
                         identity["finalization"] = finalization
                     revision = digest(canonical(identity))
                     day_key = f"{date}/{airport['icao']}"
-                    if not closing and revisions.get(day_key) == revision:
+                    if not closing and not needs_first and revisions.get(day_key) == revision:
                         continue
                     prefix = f"revisions/{revision}/"
                     old_manifest = await self.env.ARCHIVE.get(prefix+"audit.json")
@@ -502,6 +605,9 @@ class Default(WorkerEntrypoint):
                                     "generated_at": iso(day_now), "airport": airport, "registry": airports,
                                     "policy": day_policy, "reports": reports, "receipts": sorted(receipts, key=lambda r:r["id"]),
                                     "evidence": sorted({r["body_sha256"] for r in receipts})}
+                        if trigger_manifest:
+                            manifest["trigger_manifest"] = trigger_manifest
+                            manifest["evidence"] = sorted(set(manifest["evidence"]) | set(trigger_manifest["evidence"]))
                         written = await self.put(prefix+"audit.json", canonical(manifest))
                         if not written:
                             existing = await self.env.ARCHIVE.get(prefix+"audit.json")
@@ -511,23 +617,33 @@ class Default(WorkerEntrypoint):
                                    "registry_sha256": registry_hash, "snapshot_id": revision})
                     buffer = io.StringIO()
                     writer = csv.writer(buffer)
-                    writer.writerow(["observation_utc", "local_time", "selected_c", "selected_source", "status", *policy["source_order"]])
+                    writer.writerow(["observation_utc", "local_time", "selected_c", "selected_source", "status", *day_policy["source_order"]])
                     for row in result["rows"]:
                         selected = row["selected"] or {}
                         writer.writerow([row["observed_at"], row["local_time"], selected.get("temperature_c", ""),
                           selected.get("source", ""), row["status"],
-                          *[(row["sources"][s]["report"] or {}).get("temperature_c", "") for s in policy["source_order"]]])
+                          *[(row["sources"][s]["report"] or {}).get("temperature_c", "") for s in day_policy["source_order"]]])
                     await self.put(prefix+"day.csv", buffer.getvalue(), "text/csv; charset=utf-8")
                     await self.put(prefix+"day.json", canonical(result))
                     if closing:
                         # Commit the lock only after all of the immutable files exist.
                         # A competing finalizer may win; always follow the winning pointer.
-                        await self.put(lock_key, canonical({"revision": revision, "cutoff_at": iso(end),
+                        await self.put(lock_key, canonical({"revision": revision, "cutoff_at": iso(cutoff),
                                                            "published_at": iso(now_utc())}))
                     committed_lock = await self.env.ARCHIVE.get(lock_key)
                     if committed_lock:
                         locks[day_key] = json.loads(await committed_lock.text())
                     revisions[day_key] = locks[day_key]["revision"] if day_key in locks else revision
+                    # A first reading becomes public only if the conditional index
+                    # write below succeeds. Failed/superseded drafts never trigger.
+                    if next_activation is not None and start.timestamp() > next_activation and day_key not in first:
+                        selected = [r["selected"] for r in result["rows"]
+                                    if r["selected"] and parse_time(r["observed_at"]) <= day_now]
+                        if selected:
+                            row = selected[0]
+                            first[day_key] = {"date": date, "icao": airport["icao"], "revision": revision,
+                                              "report_id": row["id"], "observed_at": row["observed_at"]}
+                            new_first = True
 
         await asyncio.gather(*(publish_airport(airport) for airport in airports))
         stamp = int(now.timestamp())
@@ -560,7 +676,8 @@ class Default(WorkerEntrypoint):
                  "engine_sha256": SETTINGS["engine_hashes"], "policy_sha256": policy_hash, "registry_sha256": registry_hash,
                  "airports": airports, "dates": sorted({k.split('/')[0] for k in revisions}, reverse=True),
                  "sources": SETTINGS["sources"], "policy": policy, "retention": SETTINGS["retention"], "collection": collection,
-                 "jobs": collection, "recovery": recovery, "revisions": revisions, "locks": locks, "poll_seconds": 60,
+                 "jobs": collection, "recovery": recovery, "revisions": revisions, "locks": locks,
+                 "first_publications": first, "poll_seconds": 60,
                  "browser_refresh_seconds": 15, "stale_after_seconds": 180,
                  "rejected_count": await self.statement("SELECT COUNT(*) AS n FROM rejected").first("n"),
                  "audit_download": "manifest-and-evidence",
@@ -573,5 +690,8 @@ class Default(WorkerEntrypoint):
         if not published:
             print(json.dumps({"event": "publication_superseded"}))
             return
+        await self.persist_first_publications(first, published.uploaded)
         await self.put("health.json", canonical({"generated_at": index["generated_at"], "collection": collection, "recovery": recovery}), immutable=False)
         await self.batch([self.statement("DELETE FROM dirty WHERE icao=? AND date=? AND generation=?", d["icao"], d["date"], d["generation"]) for d in dirty if (d["icao"], d["date"]) in handled])
+        if new_first and not followup:
+            await self.publish(now_utc(), followup=True)

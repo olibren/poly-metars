@@ -16,11 +16,28 @@
     "agency_family": "NOAA"
   },
   {
+    "id": "noaa_nws",
+    "label": "NOAA / NWS API",
+    "agency": "NOAA \u00b7 United States",
+    "documentation": "https://www.weather.gov/documentation/services-web-api",
+    "retention": "Bounded seven-day recovery, within upstream availability; coverage varies by station",
+    "agency_family": "NOAA"
+  },
+  {
     "id": "eccc",
     "label": "ECCC",
     "agency": "Environment Canada \u00b7 Canada",
     "documentation": "https://eccc-msc.github.io/open-data/msc-datamart/readme_en/",
     "retention": "30 days, subject to provider retention",
     "agency_family": "ECCC"
+  },
+  {
+    "id": "met_no",
+    "label": "MET Norway",
+    "agency": "Norwegian Meteorological Institute \u00b7 Norway",
+    "documentation": "https://api.met.no/weatherapi/tafmetar/1.0/documentation",
+    "retention": "Last 24 hours for international stations; announced successor is Norway-only",
+    "agency_family": "MET Norway",
+    "license": "https://creativecommons.org/licenses/by/4.0/"
   }
 ]

@@ -46,3 +46,12 @@ rejects acceptance at or after cutoff, retrieval after cutoff, or acceptance bef
 retrieval. The selected extrema still use the same source hierarchy and rounding.
 Acceptance metadata is operator-recorded provenance, not an independent signed
 attestation or proof that every upstream observation was collected.
+
+V4 keeps the same locked-manifest schema, with a pinned `reason`, `deadline_at`
+and optional `trigger` inside `finalization`. Publication-triggered locks embed
+`trigger_manifest`, the original audit manifest for the first next-day revision,
+and include its raw-body hashes in the outer evidence list. The downloader therefore
+fetches all evidence needed to replay both days. Replay validates the triggering
+report was selected and eligible, the airport-local following date, the publication
+cutoff/deadline, acceptance boundaries and the v4 source order and rounding. Older
+v3 manifests still replay against their midnight policy without alteration.
