@@ -20,4 +20,5 @@
   so a large collective cannot hold back other reports in its hour.
 - Treat absent ECCC reception directories as recorded no-data responses, and use
   the documented alternate HTTPS hostname for actual request failures.
+- Exercise the collector's deployed Python version in CI as well as frontend checks.
 - Preserved the original routine-METAR policy and source order.

@@ -87,7 +87,7 @@ EGLC 221320Z 00000KT CAVOK 25/15 Q1029=
             client.archive = archive
             def missing(source, url):
                 archive.response(source, url, b'Not found', 404)
-                raise HTTPError(url, 404, 'Not found', {}, None)
+                raise HTTPError(url, 404, 'Not found', {}, io.BytesIO(b'Not found'))
             client.links.side_effect = missing
             airport = {**AIRPORT, 'timezone':'UTC', 'eccc_bulletins':['SAUK32_EGGY']}
             result = collect_eccc(client, [airport], [NOW.date().isoformat()], recent_hours=0)
@@ -108,7 +108,7 @@ EGLC 221320Z 00000KT CAVOK 25/15 Q1029=
             body = f'SAUK32 EGGY {stamp}\nMETAR EGLC {stamp}Z 00000KT CAVOK 24/15 Q1029='.encode()
             def listing(source, url):
                 if 'dd.weather.gc.ca' in url:
-                    raise HTTPError(url, 503, 'Unavailable', {}, None)
+                    raise HTTPError(url, 503, 'Unavailable', {}, io.BytesIO(b'Unavailable'))
                 self.assertTrue(url.startswith('https://dd.meteo.gc.ca/'))
                 return [name]
             client.links.side_effect = listing
