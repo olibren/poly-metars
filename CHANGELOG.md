@@ -9,7 +9,7 @@
 - Published immutable audit manifests with shared evidence downloads, operating instructions and an ownership handover guide.
 - Added crash, duplicate-delivery, queue-loss, publication-race and recovery-priority tests.
 - Verified clean-checkout Worker packaging in CI, including the Python SDK default-config compatibility step.
-- Redirected the former Vercel address to Cloudflare and preserved legacy evidence during cutover.
+- Redirected the former Vercel address to Cloudflare, verified all 18,196 legacy reports, preserved historical evidence, and stopped the old EC2 collector after its final backup.
 
 ## 2026-09-22 — Poly METARs live service
 

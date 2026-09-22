@@ -27,3 +27,15 @@ source conflicts, DST, rounding, repeated deliveries, lost queue messages, stora
 write interruption, concurrent publishers and historical task priority. Additional
 checks exercised Python Workers through Wrangler, fetched actual government data,
 and replayed a day downloaded from the public Cloudflare site.
+
+The final stopped-collector backup contains **18,196 reports** and **51,796 receipts**.
+Its 3,675 additional reports were separately reparsed and verified before merging;
+previously verified records were checked for unchanged contents. The compressed
+original database is retained at `legacy/ledger-final-2026-09-22.sqlite3.gz`, and its
+last public index at `legacy/index-final-2026-09-22.json`.
+
+The old collector and backup timer stopped after the final backup at
+2026-09-22T16:58:06Z. The EC2 instance is stopped; its disk and S3 backups remain
+as rollback storage and can still incur storage charges. No AWS service is needed
+by the Cloudflare runtime. The former Vercel address redirects paths and query
+strings to Cloudflare.
