@@ -12,4 +12,6 @@
 - Added 15-second browser refresh, current-clock gap labels, source freshness and
   prominent stale/error indicators.
 - Added dedicated systemd deployment, read-only serving and hourly off-host backups.
+- Added per-host pacing so one provider cannot hold another provider's request gate,
+  and cooperative shutdown during long recovery sweeps.
 - Preserved the original routine-METAR policy and source order.

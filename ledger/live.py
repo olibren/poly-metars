@@ -177,7 +177,7 @@ def run_service(root, config='config', live_interval=60, stop=None):
     airports = json.loads((Path(config) / 'airports.json').read_text())
     # One instance per persistent volume. Multiple replicas must use separate volumes.
     with store.lock():
-        client = Client(store)
+        client = Client(store, stop=stop)
         jobs = [
             ('awc-live', 'noaa_awc', 'live', collect_awc_recent, live_interval),
             ('tgftp-live', 'noaa_tgftp', 'live', collect_tgftp, live_interval),

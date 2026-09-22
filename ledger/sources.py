@@ -38,7 +38,8 @@ class Links(HTMLParser):
 
 
 class Client:
-    def __init__(self, archive):
+    def __init__(self, archive, stop=None):
+        self.stop = stop
         self.archive = archive
         self.gates = {host: threading.Lock() for host in ALLOWED_HOSTS}
         self.last = {}
@@ -50,6 +51,8 @@ class Client:
                 "Only configured HTTPS government / market endpoints are allowed"
             )
         for attempt in range(3):
+            if self.stop is not None and self.stop.is_set():
+                raise RuntimeError("Collector stopping")
             with self.gates[parsed.hostname]:
                 # Keep AWC below its documented 100 requests/minute limit.
                 interval = 0.7 if parsed.hostname == "aviationweather.gov" else 0.25
