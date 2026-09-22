@@ -108,6 +108,18 @@ type Index = {
 };
 const temperature = (value: number | null | undefined, unit = 'C') =>
   value == null ? '—' : `${value}°${unit}`;
+const sourceTemperature = (value: number | null | undefined, unit = 'C') => {
+  if (value == null) return '—';
+  if (unit === 'F') {
+    const fahrenheit = (value * 9) / 5 + 32;
+    // Match the policy: convert first, then round halves away from zero.
+    return temperature(
+      Math.sign(fahrenheit) * Math.round(Math.abs(fahrenheit)),
+      unit,
+    );
+  }
+  return temperature(value, unit);
+};
 export default function Home() {
   const [index, setIndex] = useState<Index | null>(null);
   const [icao, setIcao] = useState('ZSQD');
@@ -488,7 +500,10 @@ export default function Home() {
                 <h2>
                   {airport?.city} <span>{icao}</span>
                 </h2>
-                <p>All routine observation times · source temperatures in °C</p>
+                <p>
+                  All routine observation times · source temperatures in{' '}
+                  {airport?.unit === 'F' ? 'whole degrees °F' : '°C'}
+                </p>
                 <p>
                   {airport?.market_urls?.slice(0, 2).map((url, i) => (
                     <a key={url} href={url} target="_blank" rel="noreferrer">
@@ -517,7 +532,7 @@ export default function Home() {
                     ))}
                     <TableHead className="selected-column">
                       Selected reading
-                      <small>Proposed resolution input · °C</small>
+                      <small>Proposed resolution input · °{airport?.unit}</small>
                     </TableHead>
                     <TableHead>Record</TableHead>
                   </TableRow>
@@ -535,7 +550,10 @@ export default function Home() {
                           return (
                             <TableCell key={s.id}>
                               <span className="reading">
-                                {temperature(v?.report?.temperature_c)}
+                                {sourceTemperature(
+                                  v?.report?.temperature_c,
+                                  airport?.unit,
+                                )}
                               </span>
                               <small>
                                 {v?.ambiguous
@@ -553,7 +571,10 @@ export default function Home() {
                         })}
                         <TableCell className="selected-column">
                           <strong className="selected-reading">
-                            {temperature(row.selected?.temperature_c)}
+                            {sourceTemperature(
+                              row.selected?.temperature_c,
+                              airport?.unit,
+                            )}
                           </strong>
                           <small>
                             {row.selected

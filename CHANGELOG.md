@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-22 — US source temperature display
+
+- Display all source columns and selected readings for Fahrenheit markets in whole degrees Fahrenheit, converting before rounding under the existing policy.
+- Keep original Celsius values and raw METAR evidence intact for audit replay; daily highs and lows already use whole market degrees.
+
 ## 2026-09-22 — Source receipt ordering (routine-metar-v2)
 
 - Preserve AWC per-report receipt times, including subsecond precision, in report identities and raw-evidence replay across live, recovery and Cloudflare collection.
