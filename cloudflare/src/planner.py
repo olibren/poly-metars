@@ -1,6 +1,6 @@
 """Pure, reviewable collection jobs. No cloud credentials, networking, or selection rules."""
 from datetime import datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs
 from zoneinfo import ZoneInfo
 import hashlib
 import json
@@ -116,3 +116,18 @@ def recovery_jobs(airports, now, since, until=None, awc_offsets=None):
 def recent_dates(airports, now):
     return sorted({(now.astimezone(ZoneInfo(a["timezone"])).date()-timedelta(days=d)).isoformat()
                    for a in airports for d in range(3)}, reverse=True)
+
+
+def awc_airport_checks(tasks):
+    """Map live AWC batch checks to airports, without using recovery or report age."""
+    checks = {}
+    for task in tasks:
+        if task["source"] != "noaa_awc" or task["mode"] != "live":
+            continue
+        payload = json.loads(task["payload"])
+        stations = parse_qs(urlparse(payload["url"]).query).get("ids", [""])[0]
+        for station in stations.split(","):
+            if station:
+                checks[station] = (iso(datetime.fromtimestamp(task["last_success"], UTC))
+                                   if task["last_success"] else None)
+    return checks

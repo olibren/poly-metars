@@ -22,7 +22,7 @@ from ledger.metar import UTC, iso, parse_time, parse_awc
 from ledger.evidence import decode, bulletin_reference
 from ledger.sources import Links, collective_listing, eccc_live_links
 from ledger.policy import daily, day_bounds, resolution_deadline
-from planner import canonical, digest, job, live_jobs, recovery_jobs, planning_jobs, recent_dates, retained_dates, retention_start, TGFTP_HISTORY
+from planner import canonical, digest, job, live_jobs, recovery_jobs, planning_jobs, recent_dates, retained_dates, retention_start, TGFTP_HISTORY, awc_airport_checks
 from settings import SETTINGS
 
 MAX_BODY = 8_000_000
@@ -653,7 +653,7 @@ class Default(WorkerEntrypoint):
 
         await asyncio.gather(*(publish_airport(airport) for airport in airports))
         stamp = int(now.timestamp())
-        task_states = await self.rows("""SELECT source,mode,kind,last_success,last_attempt,last_error,interval_seconds FROM tasks
+        task_states = await self.rows("""SELECT source,mode,kind,payload,last_success,last_attempt,last_error,interval_seconds FROM tasks
           WHERE mode='live' AND expires_at>? AND (source!='eccc' OR kind!='report' OR last_success IS NULL)""", stamp)
         collection = []
         for source in policy["source_order"]:
@@ -670,6 +670,8 @@ class Default(WorkerEntrypoint):
               "interval_seconds": max((t["interval_seconds"] for t in roots), default=60), "reports": 0,
               "scope": "Per-route retrieval checks; observation completeness is shown separately.",
               "pending_tasks": sum(not t["last_success"] for t in active)})
+            if source == "noaa_awc":
+                collection[-1]["airport_last_success_at"] = awc_airport_checks(active)
         recovery = await self.rows("""SELECT source,kind,COUNT(*) AS tasks,
           SUM(last_success IS NULL) AS unchecked,
           SUM(next_due<=? AND last_success IS NOT NULL) AS rechecks_due,

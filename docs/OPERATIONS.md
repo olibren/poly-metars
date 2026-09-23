@@ -246,7 +246,10 @@ sends an identifying user agent. See [workers.dev guidance](https://developers.c
   older than 180 seconds and on missing/stale `last_success_at` for live sources.
 - Cloudflare dashboard: failed cron/queue invocations, queue age/backlog, D1 capacity,
   R2 growth and account usage. Worker logs and sampled traces are enabled.
-- The page shows current-clock missing slots and stale source/publication warnings.
+- The page shows current-clock missing slots. Its delay banner uses only the selected
+  airport’s live NOAA/AWC batch check (`collection[].airport_last_success_at`),
+  warning at 15 minutes since success. Unknown timestamps do not trigger it; fallback
+  errors and publication age remain monitoring concerns, not banner triggers.
   A successful route check says nothing about the completeness of its observations.
 
 Inspect collector logs with:
@@ -403,6 +406,10 @@ applies the current policy to every retained day, ignores activation markers, ap
 no cutoff, writes no lock pointers or first-publication receipts, and advertises
 empty `locks` and `first_publications` in the index. No migration is needed.
 
+The frontend previews a Locked pill when the following local day has a selected
+reading for the same airport. This is presentation only while locking is disabled:
+reports and revisions remain mutable, and the pill is not evidence of finalization.
+
 Existing objects under `locks/`, `first-publications/`, `locking.json` and
 `next-day-locking.json` are left untouched in R2 but are not read. Their revisions
 remain replayable with their pinned policies.
@@ -456,8 +463,8 @@ airports. KBKF returned an empty successful array on repeated checks. An empty
 array is a successful no-data check; API error codes or invalid envelopes are errors
 even with HTTP 200. AMSC is attempted globally, including KBKF, so future availability
 is collected automatically. Monitor source freshness, task errors and actual gaps.
-The UI allows three scheduled intervals before marking successful retrieval checks
-stale (15 minutes for AMSC), while errors and missing initial checks surface immediately.
+AMSC collection health remains exposed in the public diagnostics but does not
+trigger the airport’s NOAA/AWC delay banner.
 
 The source needs no credential, but an open redistribution licence has not been
 verified. Establish automated-access and public-evidence reuse terms with AMSC before

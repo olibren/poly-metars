@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-23 — Compact table-first layout
+
+- Remove the PM logo badge and CSV download option; tighten the header and controls and replace large temperature cards with an inline high/low summary.
+- Use Live/Locked pills and the next-day-reading helper text. While backend locking is disabled, preview Locked when the same airport’s following day contains a selected reading; actual evidence and revision behavior remain unchanged.
+
+## 2026-09-23 — Airport-specific freshness warning
+
+- Show the delay banner only when the selected airport’s live NOAA/AWC retrieval check is at least 15 minutes old. Publish per-airport timestamps from the existing AWC batches.
+- Fallback-source errors, global publication age and refresh errors no longer trigger this banner. Unknown check timestamps do not establish staleness; collection diagnostics remain available.
+
 ## 2026-09-23 — AMSC global fallback (routine-metar-v8)
 
 - Add AMSC after MET Norway for every registered airport, with five-minute overlapping 72-hour collection (nearest=72, without a report-count cap) and a shared one-second provider request clock.

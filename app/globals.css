@@ -72,7 +72,7 @@ summary:focus-visible {
   outline-offset: 4px;
 }
 .masthead {
-  height: 76px;
+  height: 52px;
   border-bottom: 1px solid var(--border);
   padding: 0 max(24px, calc((100% - 1120px) / 2));
   display: flex;
@@ -85,17 +85,9 @@ summary:focus-visible {
   align-items: center;
   gap: 10px;
   color: var(--foreground);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.5px;
-}
-.brand-mark {
-  background: var(--primary);
-  color: #fff;
-  border-radius: 8px;
-  padding: 7px;
-  font-size: 13px;
-  letter-spacing: 0;
 }
 .header-note {
   color: var(--muted-foreground);
@@ -104,14 +96,14 @@ summary:focus-visible {
 .page {
   max-width: 1168px;
   margin: auto;
-  padding: 36px 24px 20px;
+  padding: 20px 24px;
 }
 h1 {
-  font-size: 32px;
+  font-size: 25px;
   font-weight: 650;
   line-height: 1.2;
   letter-spacing: -1px;
-  margin: 0 0 10px;
+  margin: 0 0 4px;
 }
 p {
   margin: 8px 0;
@@ -132,26 +124,26 @@ h4 {
   display: flex;
   align-items: end;
   gap: 16px;
-  margin: 26px 0 24px;
+  margin: 16px 0 12px;
 }
 .control label {
   display: block;
   font-size: 12px;
   color: var(--muted-foreground);
-  margin-bottom: 7px;
+  margin-bottom: 4px;
 }
 .airport-select,
 .date-select {
-  height: 44px !important;
+  height: 36px !important;
   background: #fff !important;
-  font-size: 15px !important;
-  border-radius: 8px !important;
+  font-size: 13px !important;
+  border-radius: 4px !important;
 }
 .airport-select {
-  min-width: 260px;
+  min-width: 240px;
 }
 .date-select {
-  min-width: 180px;
+  min-width: 160px;
 }
 .download {
   display: flex;
@@ -159,9 +151,6 @@ h4 {
   gap: 7px;
   font-size: 13px;
   padding: 12px 0;
-}
-.toolbar-download {
-  margin-left: auto;
 }
 .day-status {
   display: flex;
@@ -175,36 +164,42 @@ h4 {
   color: var(--primary);
   background: var(--accent);
   border-radius: 20px;
-  padding: 4px 10px;
+  padding: 2px 9px;
   font-weight: 600;
 }
 .updated-time {
   margin-left: auto;
 }
+.day-locked strong {
+  color: #46534b;
+  background: #edf0ee;
+}
 .summary {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin: 16px 0 36px;
+  display: flex;
+  gap: 24px;
+  padding: 12px 0;
+  margin: 12px 0 16px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .summary > div {
-  padding: 22px 26px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #fafcfb;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.summary > div + div {
+  border-left: 1px solid var(--border);
+  padding-left: 24px;
 }
 .summary span {
-  display: block;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 .summary strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 48px;
+  font-size: 26px;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -2px;
+  letter-spacing: -0.8px;
   font-variant-numeric: tabular-nums;
 }
 .table-caption {
@@ -212,7 +207,7 @@ h4 {
   justify-content: space-between;
   align-items: end;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 .table-caption p,
 .secondary {
@@ -222,7 +217,7 @@ h4 {
 }
 .ledger-table {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 4px;
   overflow: hidden;
 }
 .ledger-table table {
@@ -416,17 +411,17 @@ footer {
 }
 @media (max-width: 700px) {
   .masthead {
-    height: 64px;
+    height: 48px;
     padding: 0 20px;
   }
   .header-note {
     display: none;
   }
   .page {
-    padding: 28px 20px 16px;
+    padding: 16px;
   }
   h1 {
-    font-size: 27px;
+    font-size: 23px;
   }
   .toolbar {
     flex-wrap: wrap;
@@ -441,10 +436,6 @@ footer {
     min-width: 0;
     width: 100%;
   }
-  .toolbar-download {
-    margin-left: 0;
-    padding: 0;
-  }
   .day-status {
     align-items: start;
   }
@@ -454,13 +445,17 @@ footer {
   }
   .summary {
     gap: 12px;
-    margin-bottom: 28px;
+    margin-bottom: 16px;
   }
   .summary > div {
-    padding: 18px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .summary > div + div {
+    padding-left: 12px;
   }
   .summary strong {
-    font-size: 38px;
+    font-size: 24px;
   }
   .table-caption .secondary {
     display: none;

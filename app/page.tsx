@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { awcStale } from '@/lib/freshness';
 import { resolutionUrl, resolveSelection } from '@/lib/resolution-url';
 import {
   Table,
@@ -17,7 +18,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { ArrowDownToLine, ChevronDown, FileText } from 'lucide-react';
+import { ChevronDown, FileText } from 'lucide-react';
 
 type Report = {
   id: string;
@@ -106,6 +107,7 @@ type Index = {
     errors: string[];
     finished_at: string;
     last_success_at?: string;
+    airport_last_success_at?: Record<string, string | null>;
     interval_seconds?: number;
     scope?: string;
     airports: string[];
@@ -279,17 +281,34 @@ export default function Home() {
   const publicationTriggered =
     day?.lock_mode === 'next_day_publication' &&
     !!index?.first_publications?.[`${nextDate}/${icao}`];
-  const finalizing =
-    !locked &&
-    (!!publicationTriggered ||
-      (!!day?.cutoff_at && now >= Date.parse(day.cutoff_at)));
-  const dayStatus = locked
-    ? 'Locked'
-    : finalizing
-      ? 'Finalizing'
-      : day?.cutoff_at || lockingDisabled
-        ? 'Live'
-        : 'Historical';
+  const nextRevision = index?.revisions?.[`${nextDate}/${icao}`];
+  const nextDayUrl = nextRevision
+    ? `/data/revisions/${nextRevision}/day.json`
+    : '';
+  const [nextDayReading, setNextDayReading] = useState<string | null>(null);
+  useEffect(() => {
+    if (!lockingDisabled || !nextDayUrl) return;
+    const controller = new AbortController();
+    fetch(nextDayUrl, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw Error('Next-day record unavailable');
+        return response.json() as Promise<Day>;
+      })
+      .then((record) => {
+        if (controller.signal.aborted) return;
+        const hasReading = record.airport.icao === icao && record.date === nextDate &&
+          record.rows.some((row) => row.selected !== null);
+        setNextDayReading(hasReading ? nextDayUrl : null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setNextDayReading(null);
+      });
+    return () => controller.abort();
+  }, [lockingDisabled, nextDayUrl, nextDate, icao]);
+  // Presentation preview only: actual lock state still governs evidence and rows.
+  const displayLocked = locked || publicationTriggered ||
+    (lockingDisabled && !!nextDayUrl && nextDayReading === nextDayUrl);
+  const dayStatus = displayLocked ? 'Locked' : 'Live';
   const displayRows =
     day?.rows.map((row) => ({
       ...row,
@@ -310,27 +329,9 @@ export default function Home() {
             now - (index?.policy.delivery_grace_minutes || 15) * 60000,
       ).length;
   const publicationAge = index
-    ? Math.max(
-        0,
-        Math.floor((now - new Date(index.generated_at).getTime()) / 1000),
-      )
+    ? Math.max(0, Math.floor((now - new Date(index.generated_at).getTime()) / 1000))
     : 0;
-  const staleSources =
-    index?.sources.filter((source) => {
-      const job = index.collection.find((job) => job.source === source.id);
-      const last = job?.last_success_at;
-      return (
-        job?.status !== 'ok' ||
-        !last ||
-        now - new Date(last).getTime() >
-          Math.max(index.stale_after_seconds || 180, (job?.interval_seconds || 60) * 3) * 1000
-      );
-    }) || [];
-  const stale =
-    !!refreshError ||
-    publicationAge > 180 ||
-    (index?.disk_used_fraction || 0) >= 0.8 ||
-    staleSources.length > 0;
+  const stale = awcStale(index?.collection, icao, now);
   const revisionRoot = revision
     ? `/data/revisions/${revision}`
     : index?.base_path || '/data';
@@ -350,7 +351,7 @@ export default function Home() {
     <main>
       <header className="masthead">
         <Link className="brand" href="/">
-          <span className="brand-mark">PM</span>Poly METARs
+          Poly METARs
         </Link>
         <span className="header-note">Daily airport temperatures</span>
       </header>
@@ -369,7 +370,7 @@ export default function Home() {
         </div>
         {!locked && stale && index && (
           <output className="freshness freshness-stale">
-            Updates are delayed. Showing the latest available readings.
+            NOAA/AWC updates for this airport are delayed. Showing the latest available readings.
           </output>
         )}
         <section className="toolbar" aria-label="Observation controls">
@@ -443,40 +444,13 @@ export default function Home() {
               </SelectContent>
             </Select>
           </div>
-          {day && (
-            <a
-              className="download toolbar-download"
-              href={
-                index?.mode === 'live'
-                  ? `${revisionRoot}/day.csv`
-                  : `${dataRoot}/days/${date}/${icao}.csv`
-              }
-              download
-            >
-              <ArrowDownToLine size={17} /> Download CSV
-            </a>
-          )}
         </section>
         {day && (
           <>
-            <output className={`day-status ${locked ? 'day-locked' : ''}`}>
+            <output className={`day-status ${displayLocked ? 'day-locked' : ''}`}>
               <strong>{dayStatus}</strong>
-              <span>
-                {locked
-                  ? day.lock_mode === 'next_day_publication'
-                    ? 'Final result · revisions are closed.'
-                    : 'Final result · frozen under the midnight policy.'
-                  : finalizing
-                    ? 'Cutoff reached · publishing the fixed result.'
-                    : lockingDisabled
-                      ? 'Locking is not active yet · results update as reports and recovered history arrive.'
-                      : day.cutoff_at
-                      ? day.lock_mode === 'next_day_publication'
-                        ? 'Updates until the first eligible next-day reading, or 11:59 PM ET the following date.'
-                        : 'Updates throughout the day · freezes at local midnight.'
-                      : 'Recorded before midnight locking was introduced.'}
-              </span>
-              {!locked && !finalizing && index && (
+              <span>Table data locks upon receipt of the following day&apos;s first reading</span>
+              {index && (
                 <span className="updated-time">
                   Updated{' '}
                   {publicationAge < 60
