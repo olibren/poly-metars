@@ -29,7 +29,6 @@ files = [
         ".oxfmtrc.json",
         "public/favicon.svg",
         ".github/workflows/check.yml",
-        "AGENTS.md",
         "pyproject.toml",
         "uv.lock",
         "pylock.toml",
@@ -55,6 +54,8 @@ files.extend(path for path in (root / "cloudflare/src").glob("*.py")
              if path.name != "settings.py")
 files.extend((root / "cloudflare").glob("*.ts"))
 files.extend((root / "cloudflare/migrations").glob("*.sql"))
+# Local agent instructions are never part of the public source distribution.
+files = [path for path in files if path.name not in {"AGENTS.md", "CLAUDE.md"}]
 with zipfile.ZipFile(root / "public/source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(set(files)):
         archive.write(path, "poly-metars/" + path.relative_to(root).as_posix())

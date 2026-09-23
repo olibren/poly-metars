@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-23 — Public source hygiene
+
+- Keep local coding-agent instructions out of version control and the public source ZIP.
+
 ## 2026-09-23 — Separate runtime and development responsibilities
 
 - Consolidate website routes, UI components and browser helpers under `src/`; move deployment settings into `cloudflare/deployment.json`.

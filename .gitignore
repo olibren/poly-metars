@@ -58,3 +58,7 @@ __pycache__/
 /public/POLICY.md
 /public/AUDIT.md
 /public/LICENSE
+
+# Local coding-agent instructions are not public project source.
+AGENTS.md
+CLAUDE.md
