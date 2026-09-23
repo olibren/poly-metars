@@ -190,7 +190,7 @@ Applying a migration or building does not publish or deploy this change.
 This remains a proposed alternate resolution source, not an adopted Polymarket
 service or exact reproduction of the weather.gov viewer. The viewer displays a
 broader observation set and uses Synoptic-supplied values. See
-[the compatibility review](docs/WEATHER_GOV_COMPATIBILITY.md). Any adoption must
+[the compatibility review](../WEATHER_GOV_COMPATIBILITY.md). Any adoption must
 publicly agree the source, observation eligibility, cutoff and no-data rules before
 trading. Administrator access can still alter or delete storage; application-level
 immutability is not external certification.

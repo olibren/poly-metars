@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-23 — Cloudflare-only repository
+
+- Remove retired AWS, Docker and Vercel deployment files, standalone collector entry points, and completed migration instructions.
+- Keep one Cloudflare operating guide, current account configuration and source download; generate public review documents at build time rather than tracking duplicate copies.
+- Preserve shared parsing, policy history, offline replay, recovery utilities and source regression coverage. Remove tests for the retired standalone server.
+
 ## 2026-09-23 — Compact table-first layout
 
 - Remove the PM logo badge and CSV download option; tighten the header and controls and replace large temperature cards with an inline high/low summary.

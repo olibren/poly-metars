@@ -30,7 +30,6 @@ yarn-error.log*
 .env*
 
 # deployment and generated files
-.vercel
 next-env.d.ts
 /dist/
 /.wrangler/
@@ -53,3 +52,9 @@ __pycache__/
 /.dev.vars*
 # Temporary compatibility file used only while syncing Python dependencies.
 /wrangler.jsonc
+
+# Review documents are generated from their canonical sources before build.
+/public/README.md
+/public/POLICY.md
+/public/AUDIT.md
+/public/LICENSE

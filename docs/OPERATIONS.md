@@ -12,8 +12,8 @@ no observation upload, correction, manual temperature override, or public trigge
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
 publicly documented process. Locking is disabled in v8 during development; see
-"V7 development mode" below. V4–v6 days locked on this site’s first eligible
-next-day publication or the following date’s 23:59:00 America/New_York deadline.
+"Finalization" below. The retained policy versions support offline replay of
+published revisions; they are not alternative deployment configurations.
 
 ## Install and deploy to a new account
 
@@ -31,9 +31,11 @@ npx wrangler queues create poly-metars-live
 npx wrangler queues create poly-metars-recovery
 ```
 
-Put the returned D1 database ID into `wrangler.collector.jsonc`. Names can be changed
-in both config files if the receiving account already uses them. Resource creation
-is a one-time operation. No government API keys or runtime secrets are needed.
+Put the returned D1 database ID into `wrangler.collector.jsonc` and
+`deploy/cloudflare.json`. Update the site URL and resource names in
+`deploy/cloudflare.json` and both Wrangler configs for the receiving account. The
+deployment JSON supplies the local preview origin and retention utility settings.
+Resource creation is a one-time operation. No government API keys or runtime secrets are needed.
 
 ```sh
 npx wrangler d1 migrations apply poly-metars --remote --config wrangler.collector.jsonc
@@ -41,7 +43,7 @@ make check build
 npm run cf:dry-run
 # Replay a real downloaded day as described in AUDIT.md before publishing changes.
 npm run cf:deploy
-# After deploying the collector's shared-evidence refresh, apply the R2 policy:
+# Apply the dedicated bucket retention policy:
 python3 scripts/configure_retention.py
 ```
 
@@ -101,10 +103,7 @@ curl 'http://localhost:8792/cdn-cgi/local/scheduled?format=json'
 ```
 
 Both processes share the local R2 state. Local testing fetches real public sources,
-but writes only to local storage. Visit localhost:8793. The old `ledger.http` process
-on port 8001 may serve existing historical fixtures for frontend development. The
-legacy local publisher rejects automatic locking policies; use the Cloudflare runtime
-for current collection and locking.
+but writes only to local storage. Visit localhost:8793.
 
 ## Collection, failure and publication
 
@@ -172,15 +171,11 @@ half-written days or overwrite a newer index. Repeating an interrupted publicati
 reuses the original manifest timestamp. Source conflicts and missing readings are
 handled by the shared policy, never by interpolation or majority voting.
 
-The `routine-metar-v2` policy preserves AWC's per-report `receiptTime` separately
-from the collector's `fetched_at`. New AWC records include this source timing in
-their deterministic identity; re-fetching a legacy report can add a timed copy
-without altering the original row or receipt. Live, recovery and offline replay
-use the same decoder. No database migration is required. TGFTP/ECCC file dates
-are not used to order individual report versions. Missing or invalid timing stays
-unordered, and unresolved selection is reported automatically without a manual
-review workflow. NWS API observation timestamps are not receipt times. V3 retains the old midnight
-boundary; v4 adds the publication/deadline boundary below.
+AWC's per-report `receiptTime` is preserved separately from the collector's
+`fetched_at`. Live collection, recovery and offline replay use the same decoder.
+TGFTP/ECCC file dates are not used to order individual report versions. Missing or
+invalid timing stays unordered; unresolved selection is reported automatically.
+Historical policies and decoders remain available to verify pinned evidence.
 
 `config/retention.json` is the storage policy. D1 and the current index keep complete
 airport local days intersecting the last 30 days. Bounded pruning runs after
@@ -188,8 +183,8 @@ publication; referenced receipts survive for as long as their retained reports.
 Unreferenced receipts and rejected records are pruned after 30 days. Old content
 returned by an upstream cannot reintroduce an expired observation day.
 
-The dedicated `poly-metars` R2 bucket expires objects 32 days after upload, including
-legacy migration snapshots. This small buffer protects complete local days. Shared
+The dedicated `poly-metars` R2 bucket expires objects 32 days after upload for retained
+evidence and revisions. This small buffer protects complete local days. Shared
 raw bodies reused after 12 hours are refreshed with identical bytes, keeping their
 hashes and original receipt times intact. Newly backfilled evidence may consequently
 remain longer than 30 days from observation time. Lifecycle deletion is asynchronous
@@ -273,87 +268,9 @@ it is not an automatic whole-bucket disaster-recovery service. Restore all affec
 recent days before restarting publication, or the new index could show fewer reports.
 The owner should separately export the bucket for protection from account loss.
 
-## Legacy deployment
-
-The prior EC2/Vercel deployment is documented in [LEGACY_AWS.md](LEGACY_AWS.md) solely
-for rollback and historical evidence recovery. Its public revisions and off-host
-backups must be preserved during cutover. It is not part of the Cloudflare runtime.
-
-## Midnight-lock rollout and recovery
-
-Apply `0003_midnight_lock.sql` before deploying the v3 collector. It adds durable
-acceptance timestamps and a one-time activation boundary; existing archived rows
-are stamped as known present now, never at an invented historical cutoff. A bounded
-repair stamps rows archived by an overlapping old deployment. Deploy the collector
-and frontend together after `make check build`, a Cloudflare dry run and offline
-replay. No remote deployment or migration occurs merely by building locally.
-
-The finalizer runs in the existing scheduled collector. It admits only reports
-accepted strictly before the airport's next local midnight, then conditionally
-creates `locks/YYYY-MM-DD/ICAO.json` after its revision artifacts exist. The index's
-`locks` map preserves these pointers. Finalization retries recover incomplete
-writes, including a crash after lock creation but before index publication. An
-outage does not extend the cutoff; retained unfinalized days are revisited even
-when no reports have marked them dirty. At most two unindexed closing days per
-airport are processed per tick, newest first; remaining dirty work is retained.
-Completed days avoid repeated evidence
-queries. Post-cutoff collection may preserve late evidence but never changes a lock.
-
-`locking.json` preserves deployment activation alongside the D1 state. During D1
-recovery, preserve the original R2 bucket, lock pointers, activation and revisions.
-Restoring SQL evidence alone is not a restoration of resolution locks. Never delete
-or recreate lock pointers to force a new result. If the R2 archive is also lost,
-restore its lock records and dependencies from an owner backup before resuming
-publication; the evidence-only SQL utility cannot reconstruct lock provenance.
-
-The cutoff is exact but scheduled execution/publication is asynchronous. The UI
-shows Finalizing until the final record is available. Check after each local
-midnight that expected airport/day keys enter `index.locks`; alert on prolonged
-pending publication independently of collection health. Locked pages keep stable
-coverage diagnostics and do not inherit current live-source freshness warnings.
-The 30-day retention window and buffered R2 expiry still apply to locked records.
-
-
-## V4 next-day-publication rollout and recovery
-
-Run `0004_next_day_lock.sql` before deploying the v4 collector. It records a new
-activation time; no reports or old locks are rewritten. Deploy after the required
-checks, offline replay and Cloudflare dry run. Days ending after v4 activation use
-the new policy; already-ended v3 days still use their original midnight cutoff.
-The existing section above describes recovery of those v3 days.
-
-NWS API collection was introduced in v4 and retired in v5; the current planner does
-not schedule observation queries or pagination. See the retirement section below.
-
-V4 publication receipts live at `first-publications/YYYY-MM-DD/ICAO.json`. An index
-commit first advertises a selected next-day reading. Its R2 upload timestamp,
-recorded to whole seconds, supplies the cutoff. A conditional immutable receipt
-pins that first revision/report. The publisher immediately follows with finalization;
-if interrupted, the next tick first persists pending receipts from the existing
-index's own upload time before replacing it. A failed/superseded draft never starts
-a cutoff. Browser caching does not affect it.
-
-Keep `next-day-locking.json`, `first-publications/`, `locking.json`, `locks/` and all
-referenced revisions/evidence during backup or recovery. Losing both an uncheckpointed
-index and its first-publication receipt destroys that publication provenance; do
-not invent a replacement timestamp. First-publication receipts are assertions by
-the source operator, not independently signed timestamps.
-
-The finalizer uses the earlier of the saved publication time and the fixed ET
-deadline. Data accepted at or after the recorded cutoff second stay outside the
-locked input set, even if fetched earlier. A next-day fallback-source reading can
-trigger; NIL, SPECI, unknown classification and unresolved selections cannot.
-The locked audit bundle embeds the triggering day's original manifest and all its
-raw evidence, so downloading one bundle is sufficient for offline replay.
-
-Monitor finalization after the next-day reading appears and at the ET deadline,
-not just at local midnight. No-next-day-report days stay live until that deadline.
-The UI distinguishes Live, Finalizing and Locked. Late corrections cannot change
-a lock; no usable readings still produces null high/low.
-
 ## MET Norway fallback
 
-MET Norway follows ECCC in v4. Eight-station XML batches run in the live queue
+MET Norway follows ECCC in the current source hierarchy. Eight-station XML batches run in the live queue
 every minute, with a shared one-second request clock and identifying User-Agent.
 Each response covers available last-24-hour history, so recent recovery needs no
 separate jobs. The `met_no_cache:` D1 state entries retain the original receipt ID,
@@ -368,38 +285,10 @@ a Norway-only successor and retains international data for only 24 hours.
 Do not treat this path as guaranteed coverage or a 30-day archive. Preserve
 CC BY 4.0 attribution in the site, policy, source registry and handover.
 
-## V5 NWS retirement
+## Finalization
 
-No schema migration is needed. The first new cron expires tasks whose source is no
-longer in the active policy. New task insertion filters inactive sources, and queued
-pre-upgrade messages are acknowledged without fetching or planning retired sources.
-A fetch already running on the previous Worker may finish during rollout; its
-original evidence is preserved. Expired task metadata follows normal pruning.
-Do not delete NWS reports, raw responses or receipts as part of this removal.
-
-V5 removes NWS from unlocked next-day-governed revisions and from live health and
-source lists. Existing locks, first-publication receipts and embedded v4 policies
-stay unchanged. No finality activation is reset. The historical NWS evidence decoder
-is retained for offline verification. Confirm zero active NWS tasks, four current
-source columns, unchanged old locks and a successful offline audit after deployment.
-See WEATHER_GOV_COMPATIBILITY.md for schema, format and coverage findings.
-
-## V6 placeholder NIL rule
-
-No schema migration or activation reset is needed. V6 changes only per-source
-selection: a NIL without `COR` or a `CCx` bulletin no longer counts as a version,
-so it cannot withdraw or block a routine report from the same source. A corrected
-NIL still withdraws. NIL rows stay stored and visible as excluded evidence.
-
-Unlocked next-day-governed days are recomputed under v6 on the next tick; existing
-locks, first-publication receipts and embedded v5 manifests stay unchanged and
-replay with their pinned policy. Before deployment, replay retained days under v5
-and v6 and confirm that every difference is a blocked or disagreement row becoming
-selected or clean. A changed temperature on an already selected row means the rule
-is broader than intended; do not deploy. Expect additional fallback selections,
-which can trigger next-day locks earlier.
-
-## V7 development mode: locking disabled
+See [the finalization contract](FINALITY_DESIGN.md) for cutoff and lock-recovery
+requirements when locking is enabled.
 
 `lock_mode: "disabled"` in `config/policy.json` turns locking off. The publisher then
 applies the current policy to every retained day, ignores activation markers, applies
@@ -439,12 +328,9 @@ Do this only once the policy is agreed; it is not automatic.
 4. Run the usual checks, offline replay and dry run, then deploy. Days ending after
    the new activation lock under the new version.
 
-## V8 AMSC global fallback
+## AMSC global fallback
 
-V8 adds `amsc` after `met_no`, without changing locking, rounding or revision rules.
-V7 policy and documentation are archived; pinned older exports replay unchanged.
-No schema migration or activation reset is needed. The current-policy change queues
-retained days for recomputation using the existing bounded dirty queue.
+AMSC follows MET Norway in the current source hierarchy. Locking remains disabled.
 
 One live job per registered airport polls the unauthenticated AMSC message-retrieval
 endpoint every 300 seconds, requesting nearest=72 (hours) with tt=SA,SP. All requests share a

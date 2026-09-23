@@ -170,7 +170,7 @@ schema has no routine/SPECI discriminator, and received raw messages did not car
 explicit classification. EGLC returned no observations. Station network/provider
 metadata, reporting minute and QC flags do not establish report type. Alternative
 text products did not provide current coverage for the configured stations.
-See [the investigation](docs/WEATHER_GOV_COMPATIBILITY.md#nws-retirement-investigation).
+See [the investigation](../WEATHER_GOV_COMPATIBILITY.md#nws-retirement-investigation).
 
 Original NWS GeoJSON, normalized reports, receipts and historical revisions remain
 subject to the existing retention policy. The decoder remains available for offline
@@ -195,7 +195,7 @@ Building does not publish or deploy a change.
 This remains a proposed alternate resolution source, not an adopted Polymarket
 service or exact reproduction of the weather.gov viewer. The viewer displays a
 broader observation set and uses Synoptic-supplied values. See
-[the compatibility review](docs/WEATHER_GOV_COMPATIBILITY.md). Any adoption must
+[the compatibility review](../WEATHER_GOV_COMPATIBILITY.md). Any adoption must
 publicly agree the source, observation eligibility, cutoff and no-data rules before
 trading. Administrator access can still alter or delete storage; application-level
 immutability is not external certification.

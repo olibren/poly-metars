@@ -90,8 +90,24 @@ npm run cf:dry-run
 
 [docs/OPERATIONS.md](docs/OPERATIONS.md) describes account setup, local execution,
 deployment, monitoring and recovery. [docs/HANDOVER.md](docs/HANDOVER.md) describes
-adoption into Polymarket-controlled accounts. The legacy standalone Python collector
-remains available for offline research and rollback; it is not required by Cloudflare.
+adoption into Polymarket-controlled accounts. Collection and publication run only
+through the Cloudflare Workers.
+The offline verifier requires no Cloudflare account or credentials.
+
+## Repository guide
+
+- `cloudflare/`: collector, planner, read-only site Worker and database migrations.
+- `ledger/`: shared parsing and policy, offline verification, registry review and
+  local audit-fixture helpers. This directory is not a standalone deployment.
+- `app/`, `components/`, `lib/`: static website.
+- `config/`: reviewed airport, source, retention and policy definitions. Versioned
+  policies are retained because published evidence pins their rules.
+- `scripts/`: build preparation, audit download, D1 recovery and retention setup.
+- `docs/`: audit, operations, adoption and design contracts.
+- `tests/`: source, selection, publication, recovery and replay regression checks.
+
+The build generates public review documents and `public/source.zip` from these
+sources. Dependency trees, downloaded evidence and local runtime data are ignored.
 
 ## Limits and ownership
 
@@ -127,8 +143,9 @@ expired days do not fall back to another day. Data remains subject to the existi
 
 See [the interface comparison](docs/INTERFACE_REVIEW.md) for the design rationale.
 
-V7 disables locking during development; the v4–v6 next-day publication cutoff is the
-intended rule once locking is re-enabled from a new activation time. New day rounding
+The current policy disables locking during development. The implemented next-day
+publication cutoff is the intended rule once locking is re-enabled from a new
+activation time. New day rounding
 matches weather.gov's whole-degree display tie rule; raw temperature precision stays
 unchanged. NWS API collection is retired: its available observations could not
 reliably establish routine report type. Archived evidence remains replayable. See [weather.gov compatibility](docs/WEATHER_GOV_COMPATIBILITY.md).

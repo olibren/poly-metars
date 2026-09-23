@@ -5,6 +5,7 @@ import shutil
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
+(root / "public").mkdir(exist_ok=True)
 for name in ("README.md", "POLICY.md", "LICENSE"):
     shutil.copyfile(root / name, root / "public" / name)
 shutil.copyfile(root / "docs/AUDIT.md", root / "public/AUDIT.md")
@@ -18,8 +19,6 @@ files = [
         "LICENSE",
         "CHANGELOG.md",
         "Makefile",
-        "Dockerfile",
-        ".dockerignore",
         ".gitignore",
         "package.json",
         "package-lock.json",
@@ -31,8 +30,6 @@ files = [
         "components.json",
         "public/favicon.svg",
         ".github/workflows/check.yml",
-        "vercel.json",
-        ".vercelignore",
         "AGENTS.md",
         "pyproject.toml",
         "uv.lock",
