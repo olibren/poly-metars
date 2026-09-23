@@ -1,4 +1,4 @@
-# Resolution policy: routine-metar-v6
+# Resolution policy: routine-metar-v7
 
 This document describes a proposed temperature resolution policy. The machine-readable
 version is `config/policy.json`. It is not the current rulebook of an existing market.
@@ -39,8 +39,8 @@ For one registered airport and exact UTC observation time:
    flags do not require human adjudication when a reading has been selected.
    Rows with no determinable reading are excluded automatically from the daily
    extrema. Gaps and conflicts remain diagnostic evidence; they do not prevent
-   automatic resolution or require human review. Governed days are `live`,
-   `finalization_pending`, or `locked`.
+   automatic resolution or require human review. While locking is disabled
+   (v7), every retained day is `live` and stays revisable.
 
 No average, majority vote, hottest-reading preference or coldest-reading preference
 is used. Multiple copies of an airport's report are not independent measurements.
@@ -86,9 +86,10 @@ was actually issued, nor do filled slots prove no additional report was missed.
 
 Continuous collection and a separate recovery queue cover the last 30 days, within
 upstream availability. AWC and ECCC offer up to 30 days; MET Norway provides the available last 24 hours. TGFTP's rotating files do
-not guarantee that history. Restarts resume bounded historical planning. Before cutoff, a newly
-obtained higher-priority report or correction may change a selection. After locking,
-late reports and corrections are retained separately and cannot change the day.
+not guarantee that history. Restarts resume bounded historical planning. A newly
+obtained higher-priority report or correction may change a selection. In v7 no cutoff
+applies, so recovered history can change any retained day. When locking is enabled,
+late reports and corrections after cutoff are retained separately and cannot change the day.
 Missing history remains explicitly missing; successful retrieval is not proof of
 completeness. Backfilled reports keep their actual retrieval times.
 
@@ -117,9 +118,21 @@ Download and retain an audit bundle before expiry if it is needed for a longer
 dispute or recordkeeping period. This retention change does not change observation
 eligibility, source priority, rounding or the separate locking contract.
 
-## Next-day publication cutoff and automatic locking
+## Automatic locking (not active in v7)
 
-For v4 days, the cutoff is the earlier of:
+Locking is disabled while the site and policy are under development. V7 applies the
+current selection rules to every retained day, with no cutoff, finalization or lock,
+and publishes no first-publication receipts. Results change whenever reports,
+corrections or recovered history arrive, or when the policy changes. Lock records
+created under v3–v6 remain in storage but are neither honoured nor advertised.
+
+Locking will be enabled by a later policy version from a new activation time; it is
+never applied retroactively to days recomputed during development. The rule below
+is the next-day publication cutoff used by v4–v6 and is the intended starting point.
+
+### Next-day publication cutoff (v4–v6)
+
+For v4–v6 days, the cutoff is the earlier of:
 
 - The first successful publication in **this site's public index** of an eligible,
   selected routine METAR for the same airport's immediately following local date.
@@ -178,9 +191,10 @@ replay; no reports are relabeled or inferred. Existing locks are immutable.
 
 ## Policy versions and adoption
 
-V1, v2, v3 and v4 documents/configuration are preserved under `docs/policies/` and
+V1–v6 documents/configuration are preserved under `docs/policies/` and
 `config/policies/`. Their evidence continues to replay with its original rounding,
-source order and finality rules. Existing immutable locks always win.
+source order and finality rules. While v7 is active, existing lock records are not
+honoured; every retained day is republished under v7.
 
 The v4 migration records a prospective activation time, also retained in
 `next-day-locking.json`. Days whose observation interval ends after that activation
@@ -190,7 +204,9 @@ V5 changes only the active source hierarchy for unlocked v4-governed days. It
 retains v4 rounding, eligibility and publication-triggered finality, including
 original activation and first-publication receipts. No migration or cutoff reset
 is required; existing v4 locks and trigger manifests keep their exact policy.
-Building does not publish or deploy a change.
+V6 stops plain NIL placeholders from withdrawing or blocking a reading. V7 keeps v6
+selection and disables locking for development. Building does not publish or deploy
+a change.
 
 This remains a proposed alternate resolution source, not an adopted Polymarket
 service or exact reproduction of the weather.gov viewer. The viewer displays a

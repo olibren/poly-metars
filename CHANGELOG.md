@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-23 — Disable locking during development (routine-metar-v7)
+
+- Add `lock_mode: "disabled"`: every retained day follows the current policy and stays revisable, with no cutoff, finalization, lock pointers or first-publication receipts. Existing lock objects are left in R2 but not read or advertised.
+- Enqueue every retained airport-day through the bounded dirty queue after any policy, registry or engine change, so the whole window backfills under the current policy without one oversized publish.
+- Show "Locking is not active yet" on live days. Document how to re-enable locking from a new activation time.
+- Archive v6; v7 keeps v6 selection, NIL handling and rounding.
+
 ## 2026-09-23 — Placeholder NILs no longer block selection (routine-metar-v6)
 
 - Treat a NIL without `COR` or a `CCx` bulletin as a relay placeholder: it is retained and shown, but neither withdraws nor competes with a routine report from the same source. An explicitly corrected NIL still withdraws.

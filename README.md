@@ -3,9 +3,9 @@
 A public, auditable ledger of government METAR reports for airport-based temperature
 markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC → MET Norway**. Each row shows the
 captured sources and the selected reading. This is an independent proposal, not
-an adopted Polymarket resolution source. Governed daily results lock automatically
-when this site first publishes an eligible reading for the following local date,
-or at 11:59 PM ET the following calendar date, whichever comes first.
+an adopted Polymarket resolution source. Locking is not active while the site is in
+development (routine-metar-v7): every retained day follows the current policy and
+updates as reports, corrections and recovered history arrive.
 
 Site: https://poly-metars.olibren.workers.dev
 
@@ -119,16 +119,15 @@ midnight. Both daily high and low markets share this airport/day evidence page.
 Programmatic pairing requires the market's actual airport and local observation
 date from its rules; do not infer a station from the city name alone. Construct
 `origin + '/?airport=' + ICAO + '&date=' + localDate`. This is a stable page address,
-not a frozen publication: it follows the latest retained revision while live, then the immutable day lock. The audit
+not a frozen publication: it follows the latest retained revision (and, once locking is enabled, the immutable day lock). The audit
 manifest identifies the exact displayed snapshot. Unsupported, uncollected and
 expired days do not fall back to another day. Data remains subject to the existing
 30-day retention policy; download evidence for longer recordkeeping.
 
 See [the interface comparison](docs/INTERFACE_REVIEW.md) for the design rationale.
 
-V5 retains the v4 revision window: it stays open until the first eligible next-day reading is
-published here, capped at 23:59:00 America/New_York on the following calendar date.
-V3 locks and pre-activation history retain their original policy. New day rounding
+V7 disables locking during development; the v4–v6 next-day publication cutoff is the
+intended rule once locking is re-enabled from a new activation time. New day rounding
 matches weather.gov's whole-degree display tie rule; raw temperature precision stays
 unchanged. NWS API collection is retired: its available observations could not
 reliably establish routine report type. Archived evidence remains replayable. See [weather.gov compatibility](docs/WEATHER_GOV_COMPATIBILITY.md).

@@ -10,7 +10,8 @@ from ledger.policy import daily, resolve
 
 ROOT = Path(__file__).resolve().parents[1]
 V5 = json.loads((ROOT / "config/policies/routine-metar-v5.json").read_text())
-V6 = json.loads((ROOT / "config/policy.json").read_text())
+V6 = json.loads((ROOT / "config/policies/routine-metar-v6.json").read_text())
+CURRENT = json.loads((ROOT / "config/policy.json").read_text())
 ORDER = V6["source_order"]
 OBS = datetime(2026, 9, 22, 0, 25, tzinfo=UTC)
 NOW = datetime(2026, 9, 22, 16, 40, tzinfo=UTC)
@@ -116,6 +117,10 @@ class PlaceholderNilTests(unittest.TestCase):
         self.assertEqual(next(r for r in pinned["rows"] if r["observed_at"] == slot)["status"], "blocked")
         self.assertEqual(current["summary"]["high"], 11)
         self.assertEqual(current["policy_version"], "routine-metar-v6")
+
+    def test_current_policy_keeps_v6_selection(self):
+        for key in ("source_order", "revision_order", "nil_withdrawal", "rounding_mode"):
+            self.assertEqual(CURRENT[key], V6[key])
 
     def test_unsupported_modes_fail_explicitly(self):
         with self.assertRaisesRegex(ValueError, "Unsupported NIL"):

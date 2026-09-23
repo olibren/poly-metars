@@ -269,6 +269,7 @@ export default function Home() {
     else document.title = 'Poly METARs — daily airport temperatures';
   }, [icao, date]);
   const locked = day?.summary.status === 'locked';
+  const lockingDisabled = day?.lock_mode === 'disabled';
   const nextDate = day
     ? new Date(Date.parse(`${day.date}T00:00:00Z`) + 86400000)
         .toISOString()
@@ -285,7 +286,7 @@ export default function Home() {
     ? 'Locked'
     : finalizing
       ? 'Finalizing'
-      : day?.cutoff_at
+      : day?.cutoff_at || lockingDisabled
         ? 'Live'
         : 'Historical';
   const displayRows =
@@ -466,7 +467,9 @@ export default function Home() {
                     : 'Final result · frozen under the midnight policy.'
                   : finalizing
                     ? 'Cutoff reached · publishing the fixed result.'
-                    : day.cutoff_at
+                    : lockingDisabled
+                      ? 'Locking is not active yet · results update as reports and recovered history arrive.'
+                      : day.cutoff_at
                       ? day.lock_mode === 'next_day_publication'
                         ? 'Updates until the first eligible next-day reading, or 11:59 PM ET the following date.'
                         : 'Updates throughout the day · freezes at local midnight.'
@@ -690,12 +693,10 @@ export default function Home() {
             <p>
               NOAA AWC and TGFTP are delivery paths from one agency.
               ECCC and MET Norway add other distribution paths. No majority vote or temperature averaging
-              is used. Current-policy days freeze when this site first publishes
-              an eligible selected routine reading for the next local date, or
-              at 11:59 PM ET on that following calendar date, whichever comes
-              first. Reports must be durably accepted before cutoff. Earlier
-              days retain their original policy. Missing slots do not require
-              review. Later corrections cannot change a locked day. NWS API
+              is used. Locking is not active while the site is in development:
+              every retained day follows the current policy and updates as
+              reports, corrections and recovered history arrive. Missing slots
+              do not require review. NWS API
               collection was retired because its observations do not reliably
               identify routine METARs. Archived evidence remains auditable.
             </p>

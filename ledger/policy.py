@@ -176,7 +176,14 @@ def lock_cutoff(airport, date, policy, now, finalization):
     return cutoff
 
 
+LOCK_MODES = (None, "local_midnight", "next_day_publication", "disabled")
+
+
 def daily(airport, date, reports, policy, now, finalization=None):
+    if policy.get("lock_mode") not in LOCK_MODES:
+        raise ValueError("Unsupported lock mode: " + str(policy.get("lock_mode")))
+    if policy.get("lock_mode") == "disabled" and finalization is not None:
+        raise ValueError("Locking is disabled for this policy")
     start, end = day_bounds(date, airport["timezone"])
     if finalization is not None:
         cutoff = lock_cutoff(airport, date, policy, now, finalization)
@@ -283,4 +290,7 @@ def daily(airport, date, reports, policy, now, finalization=None):
             result["deadline_at"] = iso(boundary)
             result["lock_mode"] = policy["lock_mode"]
         result["finalization"] = finalization
+    elif policy.get("lock_mode") == "disabled":
+        # Development: no cutoff, no finalization; results stay revisable.
+        result["lock_mode"] = "disabled"
     return result

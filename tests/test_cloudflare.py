@@ -118,7 +118,7 @@ class CloudflareTests(unittest.IsolatedAsyncioTestCase):
         self.http_status = 200
         airports = json.loads((ROOT / "config/airports.json").read_text())
         self.airport = next(a for a in airports if a["icao"] == "EGLC")
-        settings = {"airports": [self.airport], "policy": json.loads((ROOT / "config/policy.json").read_text()),
+        settings = {"airports": [self.airport], "policy": json.loads((ROOT / "config/policies/routine-metar-v6.json").read_text()),
                     "midnight_policy": json.loads((ROOT / "config/policies/routine-metar-v3.json").read_text()),
                     "legacy_policy": json.loads((ROOT / "config/policies/routine-metar-v2.json").read_text()),
                     "retention": json.loads((ROOT / "config/retention.json").read_text()),

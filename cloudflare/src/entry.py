@@ -473,14 +473,18 @@ class Default(WorkerEntrypoint):
         condition = {"etagMatches": previous_object.etag} if previous_object else {"etagDoesNotMatch": "*"}
         airports, policy = SETTINGS["airports"], SETTINGS["policy"]
         policy_hash, registry_hash = digest(canonical(policy)), digest(canonical(airports))
-        activation_object = await self.env.ARCHIVE.get("locking.json")
-        if not activation_object:
+        # lock_mode "disabled" (development): every retained day follows the current
+        # policy and stays revisable. Existing lock and first-publication objects are
+        # left untouched in R2 but neither read nor advertised.
+        locking = policy.get("lock_mode") != "disabled"
+        activation_object = await self.env.ARCHIVE.get("locking.json") if locking else None
+        if locking and not activation_object:
             activated = await self.statement("SELECT value FROM state WHERE name='midnight_lock_started_at'").first("value")
             if activated is None:
                 raise ValueError("Apply the midnight-lock migration before publishing")
             await self.put("locking.json", canonical({"started_at": int(activated)}))
             activation_object = await self.env.ARCHIVE.get("locking.json")
-        activation = json.loads(await activation_object.text())["started_at"]
+        activation = json.loads(await activation_object.text())["started_at"] if locking else None
         next_activation = None
         if policy.get("lock_mode") == "next_day_publication":
             next_object = await self.env.ARCHIVE.get("next-day-locking.json")
@@ -495,9 +499,9 @@ class Default(WorkerEntrypoint):
         revisions = {k: v for k, v in previous.get("revisions", {}).items()
                      if k.split("/")[0] in retained.get(k.split("/")[1], set())}
         locks = {k: v for k, v in previous.get("locks", {}).items()
-                 if k.split("/")[0] in retained.get(k.split("/")[1], set())}
+                 if locking and k.split("/")[0] in retained.get(k.split("/")[1], set())}
         first = {k: v for k, v in previous.get("first_publications", {}).items()
-                 if k.split("/")[0] in retained.get(k.split("/")[1], set())}
+                 if locking and k.split("/")[0] in retained.get(k.split("/")[1], set())}
         if previous_object:
             await self.persist_first_publications(first, previous_object.uploaded)
         new_first = False
@@ -519,8 +523,9 @@ class Default(WorkerEntrypoint):
                 # Include retained prior days after outages, even if they have no dirty reports.
                 # Completed lock pointers are small; no evidence scan is needed for them.
                 candidates = set(dates) | {d["date"] for d in dirty if d["icao"] == airport["icao"]}
-                candidates |= {d for d in retained[airport["icao"]]
-                               if activation < day_bounds(d, airport["timezone"])[1].timestamp() <= now.timestamp()}
+                if locking:
+                    candidates |= {d for d in retained[airport["icao"]]
+                                   if activation < day_bounds(d, airport["timezone"])[1].timestamp() <= now.timestamp()}
                 closing_work = 0
                 for date in sorted(candidates, reverse=True):
                     if date not in retained[airport["icao"]]:
@@ -532,9 +537,9 @@ class Default(WorkerEntrypoint):
                         continue
                     start, end = day_bounds(date, airport["timezone"])
                     day_now = max(now, now_utc())
-                    governed = end.timestamp() > activation
+                    governed = locking and end.timestamp() > activation
                     next_governed = next_activation is not None and end.timestamp() > next_activation
-                    day_policy = (policy if next_governed or (governed and next_activation is None)
+                    day_policy = (policy if not locking or next_governed or (governed and next_activation is None)
                                   else SETTINGS["midnight_policy"] if governed else SETTINGS["legacy_policy"])
                     cutoff, trigger, trigger_manifest = end, None, None
                     if next_governed:
@@ -555,7 +560,7 @@ class Default(WorkerEntrypoint):
                         closing_work += 1
                     handled.add((airport["icao"], date))
                     lock_key = f"locks/{date}/{airport['icao']}.json"
-                    existing_lock = await self.env.ARCHIVE.get(lock_key)
+                    existing_lock = await self.env.ARCHIVE.get(lock_key) if locking else None
                     if existing_lock:
                         locks[day_key] = json.loads(await existing_lock.text())
                         revisions[day_key] = locks[day_key]["revision"]
@@ -631,7 +636,7 @@ class Default(WorkerEntrypoint):
                         # A competing finalizer may win; always follow the winning pointer.
                         await self.put(lock_key, canonical({"revision": revision, "cutoff_at": iso(cutoff),
                                                            "published_at": iso(now_utc())}))
-                    committed_lock = await self.env.ARCHIVE.get(lock_key)
+                    committed_lock = await self.env.ARCHIVE.get(lock_key) if locking else None
                     if committed_lock:
                         locks[day_key] = json.loads(await committed_lock.text())
                     revisions[day_key] = locks[day_key]["revision"] if day_key in locks else revision
@@ -694,5 +699,11 @@ class Default(WorkerEntrypoint):
         await self.persist_first_publications(first, published.uploaded)
         await self.put("health.json", canonical({"generated_at": index["generated_at"], "collection": collection, "recovery": recovery}), immutable=False)
         await self.batch([self.statement("DELETE FROM dirty WHERE icao=? AND date=? AND generation=?", d["icao"], d["date"], d["generation"]) for d in dirty if (d["icao"], d["date"]) in handled])
+        if not same_engine:
+            # Rebuild every retained, unlocked day under the new engine/policy through
+            # the bounded dirty queue, 100 days per tick, instead of in one run.
+            await self.batch([self.statement("INSERT INTO dirty(icao,date) VALUES(?,?) ON CONFLICT(icao,date) DO NOTHING", icao, date)
+                              for icao, dates_ in retained.items() for date in sorted(dates_)
+                              if f"{date}/{icao}" not in locks])
         if new_first and not followup:
             await self.publish(now_utc(), followup=True)

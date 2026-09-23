@@ -1,5 +1,5 @@
 {
-  "version": "routine-metar-v7",
+  "version": "routine-metar-v6",
   "source_order": [
     "noaa_awc",
     "noaa_tgftp",
@@ -15,7 +15,7 @@
   "corrections": "Highest explicit correction rank within each source, then its latest supported per-report receipt time. Preserve all versions. Never use local fetch order or file modification time.",
   "cross_source_conflicts": "Select by source order and display the disagreement; a selected reading does not require human review.",
   "delivery_grace_minutes": 15,
-  "finalization": "Not active during development. Every retained day stays revisable under this policy and is recomputed as reports, corrections and recovered history arrive; no cutoff or lock applies. A later policy version will enable locking from a new activation time.",
+  "finalization": "Lock at the first publication by this site of an eligible selected routine METAR for the following airport-local date, or 23:59:00 America/New_York on the calendar date following the observation date, whichever comes first. Only reports durably accepted strictly before cutoff enter the result. Later revisions cannot change a locked day.",
   "unknown_classification": "Exclude, retain and explain. Never infer routine status from a scheduled minute.",
   "revision_order": "source_receipt_time",
   "source_timing": {
@@ -27,6 +27,6 @@
   "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version.",
   "nil_reports": "A NIL report is ineligible and retained. Only an explicitly corrected NIL (COR token or CCx bulletin) withdraws a reading at its source; a plain NIL is a relay placeholder that neither withdraws nor competes with a routine report.",
   "nil_withdrawal": "explicit_correction_only",
-  "lock_mode": "disabled",
+  "lock_mode": "next_day_publication",
   "rounding_mode": "half_toward_positive"
 }

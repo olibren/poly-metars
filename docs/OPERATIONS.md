@@ -11,9 +11,9 @@ The collector has no public URL and its HTTP handler always returns 404. There i
 no observation upload, correction, manual temperature override, or public trigger.
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
-publicly documented process. V4–v6 days lock on this site’s first eligible next-day publication or the following
-date’s 23:59:00 America/New_York deadline. Existing v3 locks remain unchanged;
-pre-v3 history remains under v2.
+publicly documented process. Locking is disabled in v7 during development; see
+"V7 development mode" below. V4–v6 days locked on this site’s first eligible
+next-day publication or the following date’s 23:59:00 America/New_York deadline.
 
 ## Install and deploy to a new account
 
@@ -395,3 +395,39 @@ and v6 and confirm that every difference is a blocked or disagreement row becomi
 selected or clean. A changed temperature on an already selected row means the rule
 is broader than intended; do not deploy. Expect additional fallback selections,
 which can trigger next-day locks earlier.
+
+## V7 development mode: locking disabled
+
+`lock_mode: "disabled"` in `config/policy.json` turns locking off. The publisher then
+applies the current policy to every retained day, ignores activation markers, applies
+no cutoff, writes no lock pointers or first-publication receipts, and advertises
+empty `locks` and `first_publications` in the index. No migration is needed.
+
+Existing objects under `locks/`, `first-publications/`, `locking.json` and
+`next-day-locking.json` are left untouched in R2 but are not read. Their revisions
+remain replayable with their pinned policies.
+
+Any change of policy, registry or engine hash enqueues every retained, unlocked
+airport-day in the `dirty` table. The publisher drains 100 per tick, newest first,
+so a full 31-day backfill of 50 airports completes in roughly 16 minutes. Confirm
+the backlog has drained with:
+
+```sh
+npx wrangler d1 execute poly-metars --remote --config wrangler.collector.jsonc \
+  --command "SELECT COUNT(*) AS n FROM dirty"
+```
+
+### Re-enabling locking
+
+Do this only once the policy is agreed; it is not automatic.
+
+1. Create a new policy version with the intended `lock_mode` and archive v7.
+2. Move the old `locks/` and `first-publications/` objects to a backup prefix, or wait
+   until they have left the retention window. Otherwise, once locking is re-enabled,
+   the publisher would honour those old v3–v6 lock pointers again.
+3. Rewrite `locking.json` and `next-day-locking.json`, and the matching D1 `state`
+   rows, to the re-enable time. Otherwise every day since the original 2026-09-22
+   activation that is past its cutoff would lock immediately, with cutoff filtering
+   applied retroactively.
+4. Run the usual checks, offline replay and dry run, then deploy. Days ending after
+   the new activation lock under the new version.
