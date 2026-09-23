@@ -7,7 +7,34 @@ import re
 from urllib.parse import urlparse, parse_qs
 import xml.etree.ElementTree as ET
 
-from .metar import UTC, parse_bulletin, parse_awc, parse_nws, parse_time, parse_collective, parse_report
+from .metar import UTC, START, parse_bulletin, parse_awc, parse_nws, parse_time, parse_collective, parse_report
+
+
+def decode_amsc(body, receipt):
+    """Raw reports only; API array order and fetch time never order revisions."""
+    payload = json.loads(body)
+    if (not isinstance(payload, dict) or payload.get("code") != 200
+            or not isinstance(payload.get("data"), list)):
+        raise ValueError("Expected successful AMSC report array")
+    stations = parse_qs(urlparse(receipt["url"]).query).get("cccc", [])
+    if len(stations) != 1 or not re.fullmatch(r"[A-Z][A-Z0-9]{3}", stations[0]):
+        raise ValueError("Expected one requested AMSC station")
+    station = stations[0]
+    # The API has no absolute report date. Use the retained retrieval timestamp
+    # solely to anchor DDHHMM to the nearest month, as a recent-report feed.
+    reference = parse_time(receipt["fetched_at"])
+    for raw in payload["data"]:
+        try:
+            if not isinstance(raw, str) or len(list(START.finditer(raw))) != 1:
+                raise ValueError("Expected one raw AMSC report")
+            row = parse_report(raw, reference)
+            if row["icao"] != station:
+                raise ValueError("AMSC report disagrees with requested station")
+            if parse_time(row["observed_at"]) > reference:
+                raise ValueError("AMSC observation is after retrieval")
+            yield row
+        except (ValueError, TypeError) as error:
+            yield {"icao": station, "raw": raw, "parse_error": str(error)}
 
 
 def decode_met_no(body, receipt):
@@ -72,7 +99,9 @@ def bulletin_reference(receipt):
 
 def decode(body, receipt):
     """Use the source's timestamp context, never the auditor's current date."""
-    if receipt["source"] == "met_no":
+    if receipt["source"] == "amsc":
+        yield from decode_amsc(body, receipt)
+    elif receipt["source"] == "met_no":
         yield from decode_met_no(body, receipt)
     elif receipt["source"] == "noaa_nws":
         payload = json.loads(body)

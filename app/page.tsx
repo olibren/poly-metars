@@ -106,6 +106,7 @@ type Index = {
     errors: string[];
     finished_at: string;
     last_success_at?: string;
+    interval_seconds?: number;
     scope?: string;
     airports: string[];
     dates: string[];
@@ -322,7 +323,7 @@ export default function Home() {
         job?.status !== 'ok' ||
         !last ||
         now - new Date(last).getTime() >
-          (index.stale_after_seconds || 180) * 1000
+          Math.max(index.stale_after_seconds || 180, (job?.interval_seconds || 60) * 3) * 1000
       );
     }) || [];
   const stale =
@@ -692,7 +693,7 @@ export default function Home() {
             </p>
             <p>
               NOAA AWC and TGFTP are delivery paths from one agency.
-              ECCC and MET Norway add other distribution paths. No majority vote or temperature averaging
+              ECCC, MET Norway and AMSC add other distribution paths. No majority vote or temperature averaging
               is used. Locking is not active while the site is in development:
               every retained day follows the current policy and updates as
               reports, corrections and recovered history arrive. Missing slots

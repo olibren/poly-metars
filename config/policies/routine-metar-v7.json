@@ -1,11 +1,10 @@
 {
-  "version": "routine-metar-v8",
+  "version": "routine-metar-v7",
   "source_order": [
     "noaa_awc",
     "noaa_tgftp",
     "eccc",
-    "met_no",
-    "amsc"
+    "met_no"
   ],
   "report_types": [
     "METAR"
@@ -23,8 +22,7 @@
     "noaa_awc": "receiptTime from the original AWC JSON; preserve subsecond precision.",
     "noaa_tgftp": null,
     "eccc": null,
-    "met_no": null,
-    "amsc": null
+    "met_no": null
   },
   "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version.",
   "nil_reports": "A NIL report is ineligible and retained. Only an explicitly corrected NIL (COR token or CCx bulletin) withdraws a reading at its source; a plain NIL is a relay placeholder that neither withdraws nor competes with a routine report.",

@@ -11,7 +11,7 @@ The collector has no public URL and its HTTP handler always returns 404. There i
 no observation upload, correction, manual temperature override, or public trigger.
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
-publicly documented process. Locking is disabled in v7 during development; see
+publicly documented process. Locking is disabled in v8 during development; see
 "V7 development mode" below. V4–v6 days locked on this site’s first eligible
 next-day publication or the following date’s 23:59:00 America/New_York deadline.
 
@@ -134,7 +134,7 @@ migration or government API credential is required. Old recovery cursors are ign
 Task inserts are batched below D1's statement binding limit.
 
 Request clocks in D1 pace both queues, retries and alternate hosts together: at least
-1 second between AWC and between MET Norway request slots, 1.1 seconds for ECCC
+1 second between AWC and between MET Norway and between AMSC request slots, 1.1 seconds for ECCC
 and 0.25 seconds for TGFTP.
 These are shared clocks, not independent per-consumer sleeps. Live work has priority
 access to future slots; recovery waits only briefly and otherwise sends a delayed
@@ -157,7 +157,7 @@ and task kind's task count, unchecked count, rechecks due, outstanding messages,
 errors and latest successful check (Unix seconds). Planning tasks must finish before
 the task counts describe the entire window; file discovery can increase the counts.
 These are processing counters, not a completeness percentage. Airport-day missing
-slots and evidence remain the coverage record. All four active sources may share upstream
+slots and evidence remain the coverage record. All five active sources may share upstream
 observations; the deployment is independently operable by its owner but depends on
 Cloudflare and government availability.
 
@@ -421,7 +421,7 @@ npx wrangler d1 execute poly-metars --remote --config wrangler.collector.jsonc \
 
 Do this only once the policy is agreed; it is not automatic.
 
-1. Create a new policy version with the intended `lock_mode` and archive v7.
+1. Create a new policy version with the intended `lock_mode` and archive the current policy.
 2. Move the old `locks/` and `first-publications/` objects to a backup prefix, or wait
    until they have left the retention window. Otherwise, once locking is re-enabled,
    the publisher would honour those old v3–v6 lock pointers again.
@@ -431,3 +431,35 @@ Do this only once the policy is agreed; it is not automatic.
    applied retroactively.
 4. Run the usual checks, offline replay and dry run, then deploy. Days ending after
    the new activation lock under the new version.
+
+## V8 AMSC global fallback
+
+V8 adds `amsc` after `met_no`, without changing locking, rounding or revision rules.
+V7 policy and documentation are archived; pinned older exports replay unchanged.
+No schema migration or activation reset is needed. The current-policy change queues
+retained days for recomputation using the existing bounded dirty queue.
+
+One live job per registered airport polls the unauthenticated AMSC message-retrieval
+endpoint every 300 seconds, requesting nearest=72 (hours) with tt=SA,SP. All requests share a
+one-second D1 request clock. Raw JSON, HTTP receipts and rejected entries use the
+existing evidence pipeline. The stable rolling query has no report-count cap and
+keeps the same task ID across planning ticks. The overlapping 72-hour window handles available gap
+recovery; there is no separate historical queue or claimed 30-day upstream archive.
+Live tests returned 72 hourly Jinan reports and 144 half-hourly London City reports.
+The API also accepts starDate/endDate, but tested dates beyond three days returned
+no reports; we do not schedule empty 30-day AMSC backfills.
+Do not interpret API array order as revision order. The request time only anchors
+DDHHMM to a month, and cannot prove the month of stale upstream reports.
+
+On 2026-09-23 the endpoint returned recent raw reports for 49 of 50 registered
+airports. KBKF returned an empty successful array on repeated checks. An empty
+array is a successful no-data check; API error codes or invalid envelopes are errors
+even with HTTP 200. AMSC is attempted globally, including KBKF, so future availability
+is collected automatically. Monitor source freshness, task errors and actual gaps.
+The UI allows three scheduled intervals before marking successful retrieval checks
+stale (15 minutes for AMSC), while errors and missing initial checks surface immediately.
+
+The source needs no credential, but an open redistribution licence has not been
+verified. Establish automated-access and public-evidence reuse terms with AMSC before
+operating this feed publicly. The official site advertises data-interface arrangements
+and warns against unauthorized crawling. Source code inclusion does not settle rights.

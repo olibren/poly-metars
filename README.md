@@ -1,10 +1,10 @@
 # Poly METARs
 
 A public, auditable ledger of government METAR reports for airport-based temperature
-markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC → MET Norway**. Each row shows the
+markets. Source priority: **NOAA/AWC → NOAA/TGFTP → ECCC → MET Norway → AMSC**. Each row shows the
 captured sources and the selected reading. This is an independent proposal, not
 an adopted Polymarket resolution source. Locking is not active while the site is in
-development (routine-metar-v7): every retained day follows the current policy and
+development (routine-metar-v8): every retained day follows the current policy and
 updates as reports, corrections and recovered history arrive.
 
 Site: https://poly-metars.olibren.workers.dev
@@ -40,6 +40,7 @@ Future and missing slots use the reader's current clock, even if collection stop
 | AWC live | 60 seconds | Previous 3 hours, batches of 8 airports |
 | TGFTP live | 60 seconds | Latest configured SA bulletin files |
 | MET Norway live + recent recovery | 60 seconds, respecting upstream cache expiry | Batches of eight stations; available last 24 hours |
+| AMSC live + recent recovery | 5 minutes per airport | Rolling last 72 hours of raw reports, within upstream availability |
 | ECCC live | 60 seconds | Recent reception directories; latest two bulletin times per route |
 | AWC recovery | 15 minutes recent / daily older | Last 30 days and complete local boundary days, within upstream retention |
 | TGFTP recovery | 5 minutes | Timestamped rotating global collectives |
@@ -55,7 +56,7 @@ is pruned; R2 evidence and revisions expire 32 days after upload, with shared ra
 files refreshed on reuse. Backfill is limited to history still available upstream;
 TGFTP's rotating files do not guarantee a full month. See [POLICY.md](POLICY.md).
 
-AWC and TGFTP are two NOAA delivery paths, not independent agencies. ECCC and MET Norway add
+AWC and TGFTP are two NOAA delivery paths, not independent agencies. ECCC, MET Norway and AMSC add
 other distribution paths; all can share the originating airport and WMO
 transport. Only explicitly classified routine METARs enter selection. SPECI and
 ambiguous reports are retained and excluded. Read [POLICY.md](POLICY.md).

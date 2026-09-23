@@ -1,4 +1,4 @@
-# Resolution policy: routine-metar-v8
+# Resolution policy: routine-metar-v7
 
 This document describes a proposed temperature resolution policy. The machine-readable
 version is `config/policy.json`. It is not the current rulebook of an existing market.
@@ -7,7 +7,7 @@ version is `config/policy.json`. It is not the current rulebook of an existing m
 
 For one registered airport and exact UTC observation time:
 
-1. Examine NOAA/AWC, then NOAA/TGFTP, then ECCC, then MET Norway, then AMSC.
+1. Examine NOAA/AWC, then NOAA/TGFTP, then ECCC, then MET Norway.
 2. Within each source, find the highest explicit correction rank for this observation.
    `COR` and WMO `CCA` have rank 1; `CCB` has rank 2, and so on. An explicitly
    corrected version takes precedence over a later-received lower-ranked version.
@@ -15,7 +15,7 @@ For one registered airport and exact UTC observation time:
    Currently this is AWC's `receiptTime` from its original JSON, preserved as
    `source_received_at` with subsecond precision. It orders AWC's receipt of versions;
    it is not proof of the airport's original issuance order or sensor correctness.
-   TGFTP, ECCC, MET Norway and AMSC have no supported per-report timestamp for this tie-break.
+   TGFTP, ECCC and MET Norway have no supported per-report timestamp for this tie-break.
 4. Never substitute our retrieval time, HTTP Date/Last-Modified, a filename, array
    position or bulletin position. Missing, malformed, timezone-free or pre-observation
    source receipt times are unordered. An untimed legacy copy of exactly the same
@@ -40,7 +40,7 @@ For one registered airport and exact UTC observation time:
    Rows with no determinable reading are excluded automatically from the daily
    extrema. Gaps and conflicts remain diagnostic evidence; they do not prevent
    automatic resolution or require human review. While locking is disabled
-   (v8), every retained day is `live` and stays revisable.
+   (v7), every retained day is `live` and stays revisable.
 
 No average, majority vote, hottest-reading preference or coldest-reading preference
 is used. Multiple copies of an airport's report are not independent measurements.
@@ -87,7 +87,7 @@ was actually issued, nor do filled slots prove no additional report was missed.
 Continuous collection and a separate recovery queue cover the last 30 days, within
 upstream availability. AWC and ECCC offer up to 30 days; MET Norway provides the available last 24 hours. TGFTP's rotating files do
 not guarantee that history. Restarts resume bounded historical planning. A newly
-obtained higher-priority report or correction may change a selection. In v8 no cutoff
+obtained higher-priority report or correction may change a selection. In v7 no cutoff
 applies, so recovered history can change any retained day. When locking is enabled,
 late reports and corrections after cutoff are retained separately and cannot change the day.
 Missing history remains explicitly missing; successful retrieval is not proof of
@@ -118,9 +118,9 @@ Download and retain an audit bundle before expiry if it is needed for a longer
 dispute or recordkeeping period. This retention change does not change observation
 eligibility, source priority, rounding or the separate locking contract.
 
-## Automatic locking (not active in v8)
+## Automatic locking (not active in v7)
 
-Locking is disabled while the site and policy are under development. V8 applies the
+Locking is disabled while the site and policy are under development. V7 applies the
 current selection rules to every retained day, with no cutoff, finalization or lock,
 and publishes no first-publication receipts. Results change whenever reports,
 corrections or recovered history arrive, or when the policy changes. Lock records
@@ -191,10 +191,10 @@ replay; no reports are relabeled or inferred. Existing locks are immutable.
 
 ## Policy versions and adoption
 
-V1–v7 documents/configuration are preserved under `docs/policies/` and
+V1–v6 documents/configuration are preserved under `docs/policies/` and
 `config/policies/`. Their evidence continues to replay with its original rounding,
-source order and finality rules. While v8 is active, existing lock records are not
-honoured; every retained day is republished under v8.
+source order and finality rules. While v7 is active, existing lock records are not
+honoured; every retained day is republished under v7.
 
 The v4 migration records a prospective activation time, also retained in
 `next-day-locking.json`. Days whose observation interval ends after that activation
@@ -205,8 +205,7 @@ retains v4 rounding, eligibility and publication-triggered finality, including
 original activation and first-publication receipts. No migration or cutoff reset
 is required; existing v4 locks and trigger manifests keep their exact policy.
 V6 stops plain NIL placeholders from withdrawing or blocking a reading. V7 keeps v6
-selection and disables locking for development. V8 adds AMSC after MET Norway,
-with locking still disabled. Building does not publish or deploy
+selection and disables locking for development. Building does not publish or deploy
 a change.
 
 This remains a proposed alternate resolution source, not an adopted Polymarket
@@ -219,7 +218,7 @@ immutability is not external certification.
 
 ## MET Norway eligibility and attribution
 
-MET Norway follows ECCC and precedes AMSC. Original Tafmetar XML is retained.
+MET Norway is the final fallback after ECCC. Original Tafmetar XML is retained.
 The `meteorologicalAerodromeReport` envelope and required `metarType` field identify
 routine reports (empty type or AUTO), special reports (SPECI), and corrections (COR).
 Unknown flags, missing metadata, and station/timestamp contradictions are rejected;
@@ -235,37 +234,3 @@ source error rather than silently changing the source contract.
 Data: [Norwegian Meteorological Institute](https://api.met.no/),
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This site parses, filters
 and rounds those data under this policy. No provider endorsement is implied.
-
-## AMSC eligibility and recovery
-
-AMSC is the final fallback, after MET Norway, for every registered airport. Collect
-raw METAR/SPECI strings from the CAAC ATMB Aviation Meteorological Center's
-`ReportController/messageRetrieval` JSON endpoint on `www.amsc.net.cn`. Require a
-successful application status and a report array. An empty array records no data;
-it does not prove coverage, withdraw an observation, or manufacture a reading.
-
-Only an explicit METAR token establishes routine eligibility. Preserve and exclude
-SPECI and unclassified reports; preserve COR and NIL under the existing selection
-rules. Reject reports for a different requested station and malformed entries while
-retaining the complete original JSON and rejection evidence. Parse temperature from
-the raw report, never the public map's decoded temperature fields.
-
-The API supplies DDHHMM without an absolute observation date. The original retrieval
-time anchors it to the nearest valid month; observations after retrieval are rejected.
-This is a recent-report feed, not a dated archive: stale reports without an absolute
-month cannot be independently dated. Neither array position nor HTTP metadata nor
-retrieval time supplies per-report revision order. Conflicting unorderable versions
-remain ambiguous under the same rules as other sources.
-
-Poll each airport every five minutes with nearest=72 (hours) and both SA/SP message types,
-sharing a one-second AMSC request clock. The overlapping 72-hour query recovers
-available recent gaps without separate recovery jobs or a report-count cap. Testing
-found roughly three days available; older date-range queries were empty. This is
-not a guaranteed retention duration or proof of complete history. Preserve all returned versions, including duplicates in the raw
-response. Do not infer missing reports or use AAMETS as an independent vote.
-
-The endpoint currently works without credentials. Public accessibility does not
-establish an open licence or redistribution rights. AMSC advertises a data-interface
-service and its site warns against unauthorized crawling; operational use and public
-redistribution terms remain to be established with the provider. No endorsement is
-implied. See [AMSC](https://www.amsc.net.cn/).

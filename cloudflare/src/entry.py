@@ -26,12 +26,12 @@ from planner import canonical, digest, job, live_jobs, recovery_jobs, planning_j
 from settings import SETTINGS
 
 MAX_BODY = 8_000_000
-GOVERNMENT_HOSTS = {"aviationweather.gov", "tgftp.nws.noaa.gov", "dd.weather.gc.ca", "dd.meteo.gc.ca", "api.met.no"}
+GOVERNMENT_HOSTS = {"aviationweather.gov", "tgftp.nws.noaa.gov", "dd.weather.gc.ca", "dd.meteo.gc.ca", "api.met.no", "www.amsc.net.cn"}
 IMMUTABLE = "public, max-age=86400, immutable"
 LATEST = "public, max-age=0, s-maxage=10, must-revalidate"
 RESERVATION_SECONDS = 900
 # Shared across both queues and all isolates, including retries and alternate hosts.
-REQUEST_SPACING_MS = {"noaa_awc": 1000, "eccc": 1100, "noaa_tgftp": 250, "met_no": 1000}
+REQUEST_SPACING_MS = {"noaa_awc": 1000, "eccc": 1100, "noaa_tgftp": 250, "met_no": 1000, "amsc": 1000}
 # Outstanding messages per class, not an unbounded number added every minute.
 RECOVERY_LANES = (("kind='plan'", 8),
                   ("source='noaa_awc' AND kind!='plan'", 60),

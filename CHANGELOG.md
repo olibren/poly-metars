@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-23 — AMSC global fallback (routine-metar-v8)
+
+- Add AMSC after MET Norway for every registered airport, with five-minute overlapping 72-hour collection (nearest=72, without a report-count cap) and a shared one-second provider request clock.
+- Preserve original JSON, receipts, raw METAR/SPECI, corrections and rejection evidence; validate API status and requested station. Never use array order for revisions or infer routine status. Empty responses remain no data.
+- Respect each source’s polling interval in the freshness indicator, avoiding false stale warnings between AMSC polls.
+- Archive v7; keep locking disabled and preserve historical policy replay. No schema migration or deployment is required to build this change.
+- Document the observed three-day upstream history limitation, 49/50 observed coverage (KBKF empty), and unresolved automated-access/redistribution terms.
+
 ## 2026-09-23 — Disable locking during development (routine-metar-v7)
 
 - Add `lock_mode: "disabled"`: every retained day follows the current policy and stays revisable, with no cutoff, finalization, lock pointers or first-publication receipts. Existing lock objects are left in R2 but not read or advertised.

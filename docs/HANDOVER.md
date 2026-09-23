@@ -14,10 +14,13 @@ Before adoption, review the station mapping, routine-METAR restriction, integer
 versus precise temperatures, timezone boundaries, rounding, correction handling,
 source hierarchy, conflict handling and missing-data rules in POLICY.md. Establish
 an explicit finalization and dispute policy; v4–v6 closed revisions on the first eligible
-next-day publication or the following date’s ET deadline, and v7 disables locking
+next-day publication or the following date’s ET deadline, and v7–v8 disable locking
 during development. Re-enable locking before adoption. Review the differences
 from weather.gov in WEATHER_GOV_COMPATIBILITY.md. Freeze/version the applicable
 policy before the market opens.
+
+Establish AMSC automated-access and public redistribution terms before operating
+that feed; its unauthenticated endpoint is not an open-data licence.
 
 Replay independently downloaded day bundles and review collection behavior through
 real upstream outages, queue retries and delayed corrections. The repository tests

@@ -18,6 +18,7 @@ def digest(body):
 
 
 TGFTP_HISTORY = "https://tgftp.nws.noaa.gov/SL.us008001/DF.an/DC.sflnd/DS.metar/"
+AMSC_REPORTS = "https://www.amsc.net.cn/gateway/api/saas/rest/common/ReportController/messageRetrieval"
 
 
 def job(source, mode, kind, url, interval, expires, **extra):
@@ -51,6 +52,11 @@ def live_jobs(airports, now):
         # so the live fetch also recovers recent gaps without a duplicate queue.
         query = urlencode({"icao": ",".join(stations[offset:offset+8]), "extended": "true"})
         yield job("met_no", "live", "report", "https://api.met.no/weatherapi/tafmetar/1.0/metar.xml?" + query, 60, expiry)
+    for station in stations:
+        # A stable rolling time query recovers the full available three-day window
+        # without count truncation or a new task URL on every planning tick.
+        query = urlencode({"isCCCC": "cccc", "cccc": station, "nearest": 72, "tt": "SA,SP"})
+        yield job("amsc", "live", "report", AMSC_REPORTS + "?" + query, 300, expiry)
     for name in sorted({n for a in airports for n in a["tgftp_files"]}):
         yield job("noaa_tgftp", "live", "report", "https://tgftp.nws.noaa.gov/data/raw/sa/" + name, 60, expiry)
     for center, prefixes in centers(airports).items():

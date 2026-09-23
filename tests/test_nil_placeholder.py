@@ -118,8 +118,9 @@ class PlaceholderNilTests(unittest.TestCase):
         self.assertEqual(current["summary"]["high"], 11)
         self.assertEqual(current["policy_version"], "routine-metar-v6")
 
-    def test_current_policy_keeps_v6_selection(self):
-        for key in ("source_order", "revision_order", "nil_withdrawal", "rounding_mode"):
+    def test_current_policy_keeps_v6_selection_with_amsc_last(self):
+        self.assertEqual(CURRENT["source_order"], V6["source_order"] + ["amsc"])
+        for key in ("revision_order", "nil_withdrawal", "rounding_mode"):
             self.assertEqual(CURRENT[key], V6[key])
 
     def test_unsupported_modes_fail_explicitly(self):

@@ -31,5 +31,13 @@
     "retention": "Last 24 hours for international stations; announced successor is Norway-only",
     "agency_family": "MET Norway",
     "license": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "id": "amsc",
+    "label": "AMSC",
+    "agency": "CAAC Air Traffic Management Bureau Aviation Meteorological Center \u00b7 China",
+    "documentation": "https://www.amsc.net.cn/#/help",
+    "retention": "Rolling 72-hour query; approximately three days observed upstream, not guaranteed complete",
+    "agency_family": "CAAC AMSC"
   }
 ]
