@@ -1,5 +1,5 @@
 {
-  "version": "routine-metar-v6",
+  "version": "routine-metar-v5",
   "source_order": [
     "noaa_awc",
     "noaa_tgftp",
@@ -25,8 +25,6 @@
     "met_no": null
   },
   "unresolved_revisions": "Equal-time or unorderable conflicting versions block selection at that source, without fallback past the ambiguity. Matching legacy copies do not create a second unknown version.",
-  "nil_reports": "A NIL report is ineligible and retained. Only an explicitly corrected NIL (COR token or CCx bulletin) withdraws a reading at its source; a plain NIL is a relay placeholder that neither withdraws nor competes with a routine report.",
-  "nil_withdrawal": "explicit_correction_only",
   "lock_mode": "next_day_publication",
   "rounding_mode": "half_toward_positive"
 }

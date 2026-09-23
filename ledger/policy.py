@@ -41,13 +41,24 @@ def _latest_source_versions(reports):
     return sorted(candidates, key=lambda r: r["id"]), True
 
 
-def source_choice(reports, revision_order=None):
+NIL_WITHDRAWAL_MODES = (None, "explicit_correction_only")
+
+
+def _placeholder_nil(report):
+    """A NIL without COR/CCx says no report was relayed; it does not retract one."""
+    return report.get("reason") == "nil_report" and report["correction"] == 0
+
+
+def source_choice(reports, revision_order=None, nil_withdrawal=None):
     variants = sorted(reports, key=lambda r: (r["correction"], r["id"]))
     if not variants:
         return {"report": None, "ambiguous": False, "variants": variants}
     rank = max(r["correction"] for r in variants)
     if revision_order == "source_receipt_time":
         ranked = [r for r in variants if r["correction"] == rank]
+        if nil_withdrawal == "explicit_correction_only":
+            # Placeholder NILs stay in variants as evidence but are not versions.
+            ranked = [r for r in ranked if not _placeholder_nil(r)]
         candidates, ordered = _latest_source_versions(ranked)
         readings = {_reading(r) for r in candidates}
         ambiguous = len(readings) > 1
@@ -72,11 +83,16 @@ def source_choice(reports, revision_order=None):
     }
 
 
-def resolve(reports, source_order, *, revision_order=None):
+def resolve(reports, source_order, *, revision_order=None, nil_withdrawal=None):
     if revision_order not in (None, "source_receipt_time"):
         raise ValueError("Unsupported revision order: " + str(revision_order))
+    if nil_withdrawal not in NIL_WITHDRAWAL_MODES:
+        raise ValueError("Unsupported NIL withdrawal: " + str(nil_withdrawal))
+    if nil_withdrawal and revision_order != "source_receipt_time":
+        raise ValueError("NIL withdrawal mode requires source receipt time ordering")
     sources = {
-        source: source_choice([r for r in reports if r["source"] == source], revision_order)
+        source: source_choice([r for r in reports if r["source"] == source], revision_order,
+                              nil_withdrawal)
         for source in source_order
     }
     selected, blocked = None, False
@@ -192,7 +208,8 @@ def daily(airport, date, reports, policy, now, finalization=None):
     rows = []
     for timestamp in sorted(expected | set(groups)):
         result = resolve(groups.get(timestamp, []), policy["source_order"],
-                         revision_order=policy.get("revision_order"))
+                         revision_order=policy.get("revision_order"),
+                         nil_withdrawal=policy.get("nil_withdrawal"))
         if parse_time(timestamp) > now and not result["selected"]:
             result["status"] = "pending"
         rows.append(

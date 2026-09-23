@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-23 — Placeholder NILs no longer block selection (routine-metar-v6)
+
+- Treat a NIL without `COR` or a `CCx` bulletin as a relay placeholder: it is retained and shown, but neither withdraws nor competes with a routine report from the same source. An explicitly corrected NIL still withdraws.
+- Fixes TGFTP/ECCC showing an ambiguous source when a compiling centre sends a NIL followed by a delayed (`RRx`) bulletin, which blocked fallback selection whenever AWC lacked the report.
+- A newer plain NIL at AWC no longer withdraws an older AWC reading. Reports with missing temperatures keep their existing withdrawal and blocking behaviour.
+- Archive v5 policy; locked days and pinned v5 manifests replay unchanged. No schema migration or activation reset.
+
 ## 2026-09-22 — Compact selected-reading table
 
 - Show local time, selected temperature, selected source and full METAR text in compact rows.

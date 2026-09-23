@@ -11,7 +11,7 @@ The collector has no public URL and its HTTP handler always returns 404. There i
 no observation upload, correction, manual temperature override, or public trigger.
 Owner deployments can change policy; every revision includes the exact policy,
 registry and engine hashes used. Do not change policy mid-market without an explicit,
-publicly documented process. V4/v5 days lock on this site’s first eligible next-day publication or the following
+publicly documented process. V4–v6 days lock on this site’s first eligible next-day publication or the following
 date’s 23:59:00 America/New_York deadline. Existing v3 locks remain unchanged;
 pre-v3 history remains under v2.
 
@@ -380,3 +380,18 @@ stay unchanged. No finality activation is reset. The historical NWS evidence dec
 is retained for offline verification. Confirm zero active NWS tasks, four current
 source columns, unchanged old locks and a successful offline audit after deployment.
 See WEATHER_GOV_COMPATIBILITY.md for schema, format and coverage findings.
+
+## V6 placeholder NIL rule
+
+No schema migration or activation reset is needed. V6 changes only per-source
+selection: a NIL without `COR` or a `CCx` bulletin no longer counts as a version,
+so it cannot withdraw or block a routine report from the same source. A corrected
+NIL still withdraws. NIL rows stay stored and visible as excluded evidence.
+
+Unlocked next-day-governed days are recomputed under v6 on the next tick; existing
+locks, first-publication receipts and embedded v5 manifests stay unchanged and
+replay with their pinned policy. Before deployment, replay retained days under v5
+and v6 and confirm that every difference is a blocked or disagreement row becoming
+selected or clean. A changed temperature on an already selected row means the rule
+is broader than intended; do not deploy. Expect additional fallback selections,
+which can trigger next-day locks earlier.

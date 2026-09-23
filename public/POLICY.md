@@ -1,4 +1,4 @@
-# Resolution policy: routine-metar-v5
+# Resolution policy: routine-metar-v6
 
 This document describes a proposed temperature resolution policy. The machine-readable
 version is `config/policy.json`. It is not the current rulebook of an existing market.
@@ -21,11 +21,15 @@ For one registered airport and exact UTC observation time:
    source receipt times are unordered. An untimed legacy copy of exactly the same
    parsed report as a timed copy adds no independent version. A distinct untimed
    version remains a candidate alongside the latest timed versions.
-5. Use an eligible routine METAR from those candidates. A newer NIL or report without
-   a valid temperature withdraws the older reading from that source, even at the
-   same correction rank. If the remaining candidates disagree on temperature, or
-   disagree on whether a temperature is available, selection is blocked. Do not
-   hide an unresolved higher-priority ambiguity by falling back.
+5. Use an eligible routine METAR from those candidates. A plain NIL, without `COR`
+   or a `CCx` bulletin, is not a version: it records that a compiling centre had no
+   report to relay, not that the airport withdrew one. It is retained and shown but
+   neither withdraws nor competes with a report. An explicitly corrected NIL does
+   withdraw the reading at its rank. A newer report without a valid temperature
+   withdraws the older reading from that source, even at the same correction rank.
+   If the remaining candidates disagree on temperature, or disagree on whether a
+   temperature is available, selection is blocked. Do not hide an unresolved
+   higher-priority ambiguity by falling back.
 6. If the source has no eligible reading and no unresolved ambiguity, proceed to
    the next source. Select the first unambiguous eligible reading. Equivalent
    temperatures may have different winds/clouds; the report ID deterministically
