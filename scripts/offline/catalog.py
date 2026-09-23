@@ -5,8 +5,9 @@ from pathlib import Path
 from urllib.parse import urlencode
 import json
 import re
-from .archive import Archive, write_json
-from .metar import UTC, iso
+from .archive import Archive
+from ledger.archive import write_json
+from ledger.metar import UTC, iso
 from .sources import Client
 
 
@@ -27,7 +28,7 @@ def station_for_event(event):
     return next(iter(candidates)) if len(candidates) == 1 else None
 
 
-def refresh(config="config", archive_root="catalog-archive"):
+def refresh(config="config", archive_root="work/catalog", report="work/market-review.json"):
     path = Path(config)
     archive = Archive(archive_root)
     client = Client(archive)
@@ -116,7 +117,7 @@ def refresh(config="config", archive_root="catalog-archive"):
             airport["market_checked_at"] = iso(datetime.now(UTC))
         write_json(path / "airports.json", airports)
         write_json(
-            path / "markets.json",
+            Path(report),
             {
                 "checked_at": iso(datetime.now(UTC)),
                 "markets": markets,

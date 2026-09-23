@@ -7,13 +7,14 @@ import unittest
 import zipfile
 from unittest.mock import MagicMock, patch
 from urllib.error import URLError
-from ledger.archive import Archive, write_json
+from scripts.offline.archive import Archive
+from ledger.archive import write_json
 from ledger.audit import verify_export
-from ledger.export import export
+from scripts.offline.export import export
 from ledger.metar import UTC, parse_report, parse_bulletin
 from ledger.policy import resolve, daily, day_bounds, market_value
-from ledger.catalog import station_for_event
-from ledger.sources import Client, collect_awc
+from scripts.offline.catalog import station_for_event
+from scripts.offline.sources import Client, collect_awc
 from ledger.evidence import decode
 
 ORDER = ["noaa_awc", "noaa_tgftp", "eccc"]
@@ -211,10 +212,10 @@ class AuditTests(unittest.TestCase):
             response.read.return_value = b"[]"
             with (
                 patch(
-                    "ledger.sources.urlopen",
+                    "scripts.offline.sources.urlopen",
                     side_effect=[URLError("offline"), response],
                 ),
-                patch("ledger.sources.time.sleep"),
+                patch("scripts.offline.sources.time.sleep"),
             ):
                 body, receipt = Client(archive).fetch("noaa_awc", response.url)
             self.assertEqual(body, b"[]")

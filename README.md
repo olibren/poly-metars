@@ -96,18 +96,22 @@ The offline verifier requires no Cloudflare account or credentials.
 
 ## Repository guide
 
-- `cloudflare/`: collector, planner, read-only site Worker and database migrations.
-- `ledger/`: shared parsing and policy, offline verification, registry review and
-  local audit-fixture helpers. This directory is not a standalone deployment.
-- `app/`, `components/`, `lib/`: static website.
-- `config/`: reviewed airport, source, retention and policy definitions. Versioned
-  policies are retained because published evidence pins their rules.
-- `scripts/`: build preparation, audit download, D1 recovery and retention setup.
-- `docs/`: audit, operations, adoption and design contracts.
-- `tests/`: source, selection, publication, recovery and replay regression checks.
+| Directory | Responsibility |
+|---|---|
+| `src/` | Website routes (`app/`), UI components and browser helpers. |
+| `cloudflare/` | Collector, planner, read-only site Worker, database migrations and deployment settings. |
+| `ledger/` | Shared METAR parsing, deterministic selection, evidence verification and offline audit entry point. |
+| `config/` | Reviewed airport, source, retention and policy definitions. |
+| `scripts/` | Build preparation, audit download, D1 recovery and retention setup. |
+| `scripts/offline/` | Local registry review, evidence capture and audit-fixture generation; never deployed. |
+| `tests/` | Source, selection, publication, recovery and replay regression checks. |
+| `docs/` | [Reader guide](docs/README.md) to auditing, operating and adopting the system. |
 
 The build generates public review documents and `public/source.zip` from these
 sources. Dependency trees, downloaded evidence and local runtime data are ignored.
+Versioned policy definitions support verification of already-published evidence;
+they are not separate deployments. The root build and lock files support the
+TypeScript website and Python Worker toolchains.
 
 ## Limits and ownership
 

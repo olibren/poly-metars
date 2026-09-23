@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-23 — Separate runtime and development responsibilities
+
+- Consolidate website routes, UI components and browser helpers under `src/`; move deployment settings into `cloudflare/deployment.json`.
+- Keep shared parsing and verification in `ledger/`; move local capture, market review and fixture export into `scripts/offline/`. Remove unused standalone TGFTP collection functions.
+- Remove the tracked market snapshot and optional UI-generator configuration; write market review output under ignored `work/`.
+- Update build packaging, imports, test paths and the audit documentation guide without changing collection or selection rules. Exclude generated Worker settings from the source ZIP so it contains only canonical source files.
+
 ## 2026-09-23 — Cloudflare-only repository
 
 - Remove retired AWS, Docker and Vercel deployment files, standalone collector entry points, and completed migration instructions.

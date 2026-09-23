@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
-import deployment from './deploy/cloudflare.json' with { type: 'json' };
+import deployment from './cloudflare/deployment.json' with { type: 'json' };
 
 // This viewer is a static export. The Python collector owns storage and networking.
 // A Workers runtime is unnecessary and cannot be imported by Node's prerenderer.

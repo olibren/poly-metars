@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { resolutionUrl, resolveSelection } from '../lib/resolution-url.ts';
+import { resolutionUrl, resolveSelection } from '../src/lib/resolution-url.ts';
 
 const airports = [
   { icao: 'EGLC', timezone: 'Europe/London' },

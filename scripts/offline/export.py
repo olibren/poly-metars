@@ -8,9 +8,9 @@ import json
 import os
 import shutil
 import zipfile
-from .archive import canonical, digest, write_json, atomic_write
-from .metar import UTC, iso
-from .policy import daily
+from ledger.archive import canonical, digest, write_json, atomic_write
+from ledger.metar import UTC, iso
+from ledger.policy import daily
 
 
 def export(archive, config, output, dates=None, now=None):
@@ -31,7 +31,7 @@ def export(archive, config, output, dates=None, now=None):
     registry_hash = digest(canonical(airports))
     engine_hashes = {
         p.name: digest(p.read_bytes())
-        for p in sorted(Path(__file__).parent.glob("*.py"))
+        for p in sorted((Path(__file__).resolve().parents[2] / "ledger").glob("*.py"))
     }
     archive_bytes = {
         name: (archive.root / f"{name}.jsonl").read_bytes()

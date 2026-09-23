@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { awcStale } from '../lib/freshness.ts';
+import { awcStale } from '../src/lib/freshness.ts';
 
 const checked = '2026-09-23T10:00:00Z';
 const now = Date.parse(checked) + 15 * 60 * 1000;

@@ -32,8 +32,8 @@ npx wrangler queues create poly-metars-recovery
 ```
 
 Put the returned D1 database ID into `wrangler.collector.jsonc` and
-`deploy/cloudflare.json`. Update the site URL and resource names in
-`deploy/cloudflare.json` and both Wrangler configs for the receiving account. The
+`cloudflare/deployment.json`. Update the site URL and resource names in
+`cloudflare/deployment.json` and both Wrangler configs for the receiving account. The
 deployment JSON supplies the local preview origin and retention utility settings.
 Resource creation is a one-time operation. No government API keys or runtime secrets are needed.
 
@@ -65,7 +65,7 @@ in CI, including dependency synchronization and both deployment dry runs.
 For frontend work, run `npm run dev` and open
 `http://localhost:3000/?airport=EGLC&date=2026-09-22` (choose the desired date).
 The local frontend hot-reloads edits and proxies `/data/` to the read-only site
-in `deploy/cloudflare.json`. No local collector, credentials or deployment is
+in `cloudflare/deployment.json`. No local collector, credentials or deployment is
 needed. Data is real published evidence, so this mode needs internet access;
 frontend changes do not change collection or production data.
 
@@ -192,7 +192,7 @@ remain longer than 30 days from observation time. Lifecycle deletion is asynchro
 exact erasure deadline. Account owners can still alter/delete R2 data.
 
 `scripts/configure_retention.py` reads the policy and the dedicated bucket name in
-`deploy/cloudflare.json`; update that deployment file when handing over accounts.
+`cloudflare/deployment.json`; update that deployment file when handing over accounts.
 It replaces the bucket lifecycle rules and preserves seven-day incomplete-upload
 cleanup. Always deploy the collector's evidence refresh before applying these rules.
 Review with `npx wrangler r2 bucket lifecycle list poly-metars --config wrangler.collector.jsonc`.

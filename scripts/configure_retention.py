@@ -22,7 +22,7 @@ def lifecycle(retention):
 
 if __name__ == "__main__":
     retention = json.loads((ROOT/"config/retention.json").read_text())
-    deployment = json.loads((ROOT/"deploy/cloudflare.json").read_text())
+    deployment = json.loads((ROOT/"cloudflare/deployment.json").read_text())
     with tempfile.TemporaryDirectory(prefix="poly-metars-retention-") as directory:
         path = Path(directory)/"lifecycle.json"
         path.write_text(json.dumps(lifecycle(retention), indent=2)+"\n")

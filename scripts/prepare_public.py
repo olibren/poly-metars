@@ -27,7 +27,6 @@ files = [
         "vite.config.ts",
         ".oxlintrc.json",
         ".oxfmtrc.json",
-        "components.json",
         "public/favicon.svg",
         ".github/workflows/check.yml",
         "AGENTS.md",
@@ -37,6 +36,7 @@ files = [
         "wrangler.collector.jsonc",
         "wrangler.site.jsonc",
         "cloudflare/tsconfig.json",
+        "cloudflare/deployment.json",
     )
 ]
 for directory, pattern in (
@@ -46,14 +46,13 @@ for directory, pattern in (
     ("scripts", "*.py"),
     ("docs", "*.md"),
     ("config", "*.json"),
-    ("app", "*.tsx"),
-    ("app", "*.css"),
-    ("components", "*.tsx"),
-    ("lib", "*.ts"),
-    ("deploy", "*"),
+    ("src", "*.tsx"),
+    ("src", "*.css"),
+    ("src", "*.ts"),
 ):
     files.extend((root / directory).rglob(pattern))
-files.extend((root / "cloudflare/src").glob("*.py"))
+files.extend(path for path in (root / "cloudflare/src").glob("*.py")
+             if path.name != "settings.py")
 files.extend((root / "cloudflare").glob("*.ts"))
 files.extend((root / "cloudflare/migrations").glob("*.sql"))
 with zipfile.ZipFile(root / "public/source.zip", "w", zipfile.ZIP_DEFLATED) as archive:

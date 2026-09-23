@@ -8,13 +8,14 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from ledger.archive import Archive, canonical, digest, write_json
+from scripts.offline.archive import Archive
+from ledger.archive import canonical, digest, write_json
 from ledger.audit import verify_export
 from ledger.evidence import decode
-from ledger.export import export
+from scripts.offline.export import export
 from ledger.metar import UTC, parse_awc, parse_report
 from ledger.policy import daily, resolve
-from ledger.sources import collect_awc, collect_awc_recent
+from scripts.offline.sources import collect_awc, collect_awc_recent
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = json.loads((ROOT / "config/policies/routine-metar-v2.json").read_text())

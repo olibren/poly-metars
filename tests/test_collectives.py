@@ -5,10 +5,11 @@ import json
 import unittest
 from urllib.error import HTTPError
 
-from ledger.archive import Archive
+from scripts.offline.archive import Archive
 from ledger.evidence import decode
 from ledger.metar import UTC, parse_collective
-from ledger.sources import collective_listing, collect_eccc, eccc_live_links
+from ledger.sources import collective_listing, eccc_live_links
+from scripts.offline.sources import collect_eccc
 
 NOW = datetime.now(UTC).replace(second=0, microsecond=0)
 AIRPORT = {'icao': 'EGLC', 'city': 'London', 'timezone': 'Europe/London', 'unit': 'C', 'routine_minutes_utc': [20,50], 'market_urls': []}
